@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", system-ui, sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Apple Themes */
+.theme-apple-dark {
+  --bg-primary: #000000;
+  --bg-card: rgba(28, 28, 30, 0.75);
+  --bg-card-hover: rgba(44, 44, 46, 0.85);
+  --bg-accent-pill: rgba(10, 132, 255, 0.15);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --text-main: #ffffff;
+  --text-muted: #8e8e93;
+  --accent-purple: #0a84ff; /* Apple iOS System Blue */
+  --accent-purple-glow: rgba(10, 132, 255, 0.4);
+  --accent-pink: #ff375f; /* Apple Fitness Pink */
+  --accent-green: #30d158; /* Apple Fitness Green */
+  --accent-cyan: #64d2ff; /* Apple Fitness Cyan */
+}
+
+.theme-apple-light {
+  --bg-primary: #f2f2f7;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card-hover: #ffffff;
+  --bg-accent-pill: rgba(0, 122, 255, 0.1);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --text-main: #000000;
+  --text-muted: #6c6c70;
+  --accent-purple: #007aff;
+  --accent-purple-glow: rgba(0, 122, 255, 0.25);
+  --accent-pink: #ff2d55;
+  --accent-green: #34c759;
+  --accent-cyan: #32ade6;
+}
+
+.theme-midnight-blue {
+  --bg-primary: #050b14;
+  --bg-card: rgba(13, 25, 48, 0.75);
+  --bg-card-hover: rgba(20, 38, 70, 0.85);
+  --bg-accent-pill: rgba(56, 189, 248, 0.15);
+  --border-subtle: rgba(56, 189, 248, 0.15);
+  --text-main: #f0f9ff;
+  --text-muted: #7dd3fc;
+  --accent-purple: #38bdf8;
+  --accent-purple-glow: rgba(56, 189, 248, 0.4);
+  --accent-pink: #f43f5e;
+  --accent-green: #10b981;
+  --accent-cyan: #22d3ee;
+}
+
+.theme-emerald-ios {
+  --bg-primary: #02120b;
+  --bg-card: rgba(10, 32, 22, 0.75);
+  --bg-card-hover: rgba(18, 48, 35, 0.85);
+  --bg-accent-pill: rgba(52, 211, 153, 0.15);
+  --border-subtle: rgba(52, 211, 153, 0.15);
+  --text-main: #ecfdf5;
+  --text-muted: #6ee7b7;
+  --accent-purple: #34d399;
+  --accent-purple-glow: rgba(52, 211, 153, 0.4);
+  --accent-pink: #fb7185;
+  --accent-green: #10b981;
+  --accent-cyan: #2dd4bf;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Apple Frosted Glass Cards */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+/* App Viewport Container */
+.app-viewport {
+  max-width: 480px;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
+@media (min-width: 640px) {
+  .app-viewport {
+    min-height: 92vh;
+    margin: 2rem auto;
+    border-radius: 2.75rem;
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+  }
+}

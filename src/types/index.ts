@@ -1,0 +1,51 @@
+export type MoodTag = 'Stress' | 'Boredom' | 'Social' | 'Morning' | 'Post Meal' | 'Habit' | 'Craving';
+
+export interface PuffLog {
+  id: string;
+  timestamp: number; // unix ms
+  mood?: MoodTag;
+  note?: string;
+}
+
+export interface Session {
+  id: string;
+  startTime: number;
+  endTime: number;
+  puffCount: number;
+}
+
+export type VapeDeviceType = 'Disposable' | 'Pod System' | 'Sub-Ohm Mod' | 'Nic Salt Tank';
+
+export interface VapeProfile {
+  deviceType: VapeDeviceType;
+  deviceName: string;
+  nicotineMgPerMl: number; // e.g. 50mg/ml for 5% salt nic
+  podCapacityMl: number; // e.g. 2ml, 10ml, 13ml
+  totalPuffsPerPod: number; // e.g. 5000 puffs
+  costPerPodOrBottle: number; // e.g. $20.00
+  dailyLimitGoal: number; // e.g. 60 puffs/day
+}
+
+export type AppTheme = 'apple-dark' | 'apple-light' | 'midnight-blue' | 'emerald-ios';
+
+export interface AppSettings {
+  soundEnabled: boolean;
+  hapticsEnabled: boolean;
+  vaporEffectsEnabled: boolean;
+  theme: AppTheme;
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+export interface DaySummary {
+  dateStr: string; // YYYY-MM-DD
+  puffCount: number;
+  limit: number;
+  nicotineMg: number;
+  estimatedCost: number;
+}
