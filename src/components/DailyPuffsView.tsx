@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePuff } from '../context/PuffContext';
-import { Plus, Minus, Flame, AlertTriangle } from 'lucide-react';
+import { Plus, Minus, Flame, AlertTriangle, Clock, Zap } from 'lucide-react';
 import type { MoodTag } from '../types';
 
 interface DailyPuffsViewProps {
@@ -22,6 +22,8 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
     todayPuffs,
     user,
     isCloudSyncing,
+    averageBreakMinutes,
+    todayCost,
   } = usePuff();
 
   const [selectedMood, setSelectedMood] = useState<MoodTag | null>(null);
@@ -46,7 +48,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
     return `${mins}m ${secs}s`;
   };
 
-  const isOverLimit = todayCount > currentLimit;
+  const isOverLimit = todayCount >= currentLimit;
 
   const handlePuffClick = (e: React.MouseEvent) => {
     setIsPuffing(true);
@@ -271,7 +273,6 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
 
       {/* Main Touch Buttons */}
       <div className="flex items-center gap-3">
-        {/* Big Apple PUFF! (+) Button */}
         <button
           onClick={handlePuffClick}
           className={`relative flex-1 flex items-center justify-center gap-3 py-5 rounded-3xl font-extrabold text-xl shadow-2xl transition-all duration-200 active:scale-95 ${
@@ -289,7 +290,6 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
           <span>PUFF!</span>
         </button>
 
-        {/* Small Undo (-) Button */}
         <button
           onClick={undoLastPuff}
           title="Undo last puff"
@@ -313,6 +313,64 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
             </button>
           ))}
         </div>
+      </div>
+
+      {/* NEW Apple Health Widget 1: Session & Pace Insights */}
+      <div className="glass-panel p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)]">
+          <span className="flex items-center gap-1.5 text-[var(--accent-purple)]">
+            <Zap className="h-3.5 w-3.5" />
+            Session & Pace Insights
+          </span>
+          <span className="text-emerald-400 font-bold">
+            {averageBreakMinutes > 0 ? `${averageBreakMinutes} min avg break` : 'Active'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Daily Cost Est.</div>
+            <div className="text-lg font-bold text-[var(--text-main)] mt-0.5">${todayCost}</div>
+          </div>
+          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Nicotine Rate</div>
+            <div className="text-lg font-bold text-indigo-400 mt-0.5">{todayNicotineMg} mg</div>
+          </div>
+        </div>
+      </div>
+
+      {/* NEW Apple Health Widget 2: Recent Hits Feed */}
+      <div className="glass-panel p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)]">
+          <span className="flex items-center gap-1.5 text-[var(--accent-pink)]">
+            <Clock className="h-3.5 w-3.5" />
+            Recent Puff Activity Today
+          </span>
+          <span className="text-[10px] font-medium text-[var(--text-muted)]">{todayPuffs.length} logged</span>
+        </div>
+
+        {todayPuffs.length === 0 ? (
+          <div className="text-center py-3 text-xs text-[var(--text-muted)]">No hits logged today yet</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {todayPuffs.slice(0, 3).map((p) => {
+              const tStr = new Date(p.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+              return (
+                <div key={p.id} className="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
+                  <div className="flex items-center gap-2 font-medium text-[var(--text-main)]">
+                    <span className="text-indigo-400 font-bold">{tStr}</span>
+                    {p.mood && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-[var(--bg-accent-pill)] text-[var(--accent-purple)] font-semibold">
+                        {p.mood}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)]">+1 Hit</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Bottom Scroll Clearance Spacer */}
