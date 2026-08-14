@@ -9,12 +9,30 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // In-memory + persistent cache store for puff logs by syncKey
-// Format: { [key: string]: Array<{ id: string, timestamp: number, mood?: string }> }
 const puffsDb = new Map();
-
-// SSE (Server-Sent Events) Clients map for instant real-time pushing
-// Format: { [key: string]: Set<Response> }
 const sseClients = new Map();
+
+// Helper to write hit directly into Firebase Cloud Firestore Database
+const saveToFirebaseFirestore = async (key, timestamp, mood) => {
+  try {
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/draw-2b7a5/databases/(default)/documents/users/${encodeURIComponent(key)}/puffs`;
+    const body = {
+      fields: {
+        timestamp: { integerValue: String(timestamp) },
+        createdAt: { stringValue: new Date(timestamp).toISOString() },
+        mood: mood ? { stringValue: mood } : { nullValue: null },
+      },
+    };
+    await fetch(firestoreUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    console.log(`[Firebase Server Write] Direct puff logged for key: ${key} at ${timestamp}`);
+  } catch (e) {
+    console.error('[Firebase Server Write Error]', e);
+  }
+};
 
 // Helper to broadcast new puff event to connected PWA instances
 const broadcastPuff = (key, puffData) => {
@@ -34,21 +52,21 @@ const broadcastPuff = (key, puffData) => {
 // 1. Root & Health Check Endpoint
 app.get('/', (req, res) => {
   res.json({
-    app: 'PuffTrack Backend API',
+    app: 'PuffTrack Server API with Direct Firebase Cloud Write',
     status: 'online',
-    version: '2.1.0',
+    version: '2.5.0',
     timestamp: new Date().toISOString(),
   });
 });
 
-// 2. Heartbeat Ping Endpoint (Called every 4.5 minutes to prevent Render sleep)
+// 2. Heartbeat Ping Endpoint (Called every 14 minutes to prevent Render sleep)
 app.get('/ping', (req, res) => {
   res.json({ status: 'awake', pingedAt: Date.now() });
 });
 
 // 3. Main iOS Shortcut Background Hit Endpoint (?key=YOUR_KEY&action=puff)
-// Works with both GET and POST for maximum compatibility with iOS Shortcuts!
-const handleHitRequest = (req, res) => {
+// Writes DIRECTLY to Firebase Cloud Firestore even when PWA is completely CLOSED!
+const handleHitRequest = async (req, res) => {
   const key = req.query.key || req.body.key || 'default-device';
   const mood = req.query.mood || req.body.mood || null;
 
@@ -66,12 +84,15 @@ const handleHitRequest = (req, res) => {
 
   userPuffs.unshift(newPuff);
 
-  // Broadcast to PWA via Server-Sent Events in real-time!
+  // Directly write to Firebase Cloud Database on the server!
+  saveToFirebaseFirestore(key, now, mood);
+
+  // Broadcast to PWA via Server-Sent Events in real-time if open!
   broadcastPuff(key, { type: 'PUFF_ADDED', puff: newPuff, totalToday: getTodayCount(userPuffs) });
 
   res.status(200).json({
     success: true,
-    message: 'Puff hit logged successfully',
+    message: 'Puff hit logged directly to Firebase Cloud database',
     puff: newPuff,
     todayCount: getTodayCount(userPuffs),
   });
@@ -138,5 +159,5 @@ setInterval(() => {
 }, SELF_PING_INTERVAL_MS);
 
 app.listen(PORT, () => {
-  console.log(`🚀 PuffTrack Backend Server running on port ${PORT}`);
+  console.log(`🚀 PuffTrack Backend Server running on port ${PORT} with Direct Firebase Cloud Write`);
 });
