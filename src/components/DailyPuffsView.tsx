@@ -314,6 +314,9 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
           ))}
         </div>
       </div>
+
+      {/* Bottom Scroll Clearance Spacer */}
+      <div className="h-16 w-full shrink-0" />
     </div>
   );
 };

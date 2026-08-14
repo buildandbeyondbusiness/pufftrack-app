@@ -414,10 +414,13 @@ export const ProfileView: React.FC = () => {
       </div>
 
       {/* App Version Footer */}
-      <div className="text-center py-6 text-xs text-zinc-500 font-medium">
-        PuffTrack v1.5.0 • Apple Edition
+      <div className="text-center py-4 text-xs text-zinc-500 font-medium">
+        PuffTrack v1.6.0 • Apple Edition
         <div className="text-[10px] text-zinc-600 font-mono mt-0.5">Build 2026.08.15 • Firebase Cloud Sync</div>
       </div>
+
+      {/* Bottom Scroll Clearance Spacer */}
+      <div className="h-20 w-full shrink-0" />
     </div>
   );
 };
