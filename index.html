@@ -7,7 +7,7 @@
     <meta name="description" content="PuffTrack - Apple Health Style Smart Vape Puff Tracker & Cloud Sync" />
     
     <!-- PWA Manifest & Apple Standalone Meta Tags -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,11 +18,11 @@
   </head>
   <body class="theme-apple-dark">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch((err) => {
+          navigator.serviceWorker.register('./sw.js').catch((err) => {
             console.log('SW registration failed: ', err);
           });
         });
