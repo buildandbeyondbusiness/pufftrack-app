@@ -12,37 +12,51 @@ import { DynamicIsland } from './components/DynamicIsland';
 import { MacOSNotification } from './components/MacOSNotification';
 import type { ToastMessage } from './components/MacOSNotification';
 
+import { syncSavePuff } from './firebase/service';
+
 const MainAppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [lastHitPulseTime, setLastHitPulseTime] = useState<number>(0);
   const [macNotification, setMacNotification] = useState<ToastMessage | null>(null);
-  const { settings, addPuff, todayCount, currentLimit } = usePuff();
+  const { settings, addPuff, todayCount, currentLimit, user } = usePuff();
   const vaporRef = useRef<VaporCanvasRef | null>(null);
 
   useEffect(() => {
     document.body.className = `theme-${settings.theme}`;
   }, [settings.theme]);
 
-  // Handle URL Query Action Trigger (e.g. ?action=puff for iOS Back Tap)
+  // Handle URL Query Action Trigger (e.g. ?uid=...&action=puff for iOS Back Tap)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'puff' || params.get('hit') === '1') {
-      addPuff();
-      setLastHitPulseTime(Date.now());
+      const targetUid = params.get('uid') || user?.uid;
+      const now = Date.now();
+      const newPuff = {
+        id: `puff-${now}-${Math.random().toString(36).substr(2, 4)}`,
+        timestamp: now,
+      };
+
+      if (targetUid) {
+        syncSavePuff(targetUid, newPuff);
+      } else {
+        addPuff();
+      }
+
+      setLastHitPulseTime(now);
       if (vaporRef.current && settings.vaporEffectsEnabled) {
         vaporRef.current.emitPuff(undefined, undefined, 35);
       }
       setMacNotification({
-        id: `backtap-${Date.now()}`,
-        title: 'iPhone Back Tap Hit Registered',
-        subtitle: `Puff #${todayCount + 1} logged via Back Tap gesture.`,
+        id: `backtap-${now}`,
+        title: 'iPhone Back Tap Registered',
+        subtitle: `Puff logged & synced to Cloud.`,
         type: 'success',
       });
 
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [addPuff, settings.vaporEffectsEnabled, todayCount]);
+  }, [addPuff, settings.vaporEffectsEnabled, todayCount, user]);
 
   // Handle Spacebar Trigger
   useEffect(() => {

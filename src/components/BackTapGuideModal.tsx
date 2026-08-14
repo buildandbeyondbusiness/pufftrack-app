@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import { Zap, Copy, Check, X, Sliders, EyeOff } from 'lucide-react';
 
+import { usePuff } from '../context/PuffContext';
+
 interface BackTapGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, onClose }) => {
+  const { user } = usePuff();
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const shortcutUrl = "https://buildandbeyondbusiness.github.io/pufftrack-app/?action=puff";
+  const shortcutUrl = user
+    ? `https://buildandbeyondbusiness.github.io/pufftrack-app/?uid=${user.uid}&action=puff`
+    : "https://buildandbeyondbusiness.github.io/pufftrack-app/?action=puff";
 
   if (!isOpen) return null;
 
