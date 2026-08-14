@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💨</text></svg>" />
+    <link rel="icon" type="image/png" href="./icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="PuffTrack - Apple Health Style Smart Vape Puff Tracker & Cloud Sync" />
     
@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PuffTrack" />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23000000%22/><text y=%22.85em%22 x=%2250%25%22 text-anchor=%22middle%22 font-size=%2265%22>💨</text></svg>" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
 
     <title>PuffTrack - Smart Vape Tracker</title>
     <script type="module" crossorigin src="./assets/index-CC5EILLu.js"></script>
@@ -23,7 +23,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').catch((err) => {
+          navigator.serviceWorker.register('./sw.js', { scope: './' }).catch((err) => {
             console.log('SW registration failed: ', err);
           });
         });
