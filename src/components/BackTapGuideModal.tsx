@@ -85,7 +85,7 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
         <div className="rounded-2xl bg-white/5 p-3.5 border border-white/10 flex flex-col gap-2">
           <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-300">
             <span>iOS Shortcut Webhook URL:</span>
-            <span className="text-[10px] text-emerald-400 font-mono">4.5m Heartbeat</span>
+            <span className="text-[10px] text-emerald-400 font-mono">14m Heartbeat</span>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -151,14 +151,14 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
           </div>
         </div>
 
-        {/* Render 4.5m Heartbeat Note */}
+        {/* Render 14m Heartbeat Note */}
         <div className="rounded-2xl bg-indigo-500/10 p-3 border border-indigo-500/20 text-[11px] text-indigo-300 flex flex-col gap-1">
           <div className="font-bold flex items-center gap-1">
             <Zap className="h-3.5 w-3.5 text-amber-400" />
-            4.5-Minute Anti-Sleep Heartbeat Loop
+            14-Minute Anti-Sleep Heartbeat Loop
           </div>
           <div>
-            The app and backend ping each other every <strong>4.5 minutes</strong> to keep Render awake 24/7 with zero cold starts!
+            The app and backend ping each other every <strong>14 minutes</strong> to keep Render awake 24/7 with zero cold starts!
           </div>
         </div>
 

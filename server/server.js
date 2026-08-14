@@ -124,8 +124,8 @@ function getTodayCount(puffs) {
   return puffs.filter((p) => p.timestamp >= startMs).length;
 }
 
-// 6. Self-Ping Keep-Alive Heartbeat Timer (Every 4.5 Minutes = 270,000 ms)
-const SELF_PING_INTERVAL_MS = 4.5 * 60 * 1000;
+// 6. Self-Ping Keep-Alive Heartbeat Timer (Every 14 Minutes = 840,000 ms)
+const SELF_PING_INTERVAL_MS = 14 * 60 * 1000;
 setInterval(() => {
   const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
   http
