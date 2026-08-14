@@ -8,9 +8,11 @@ import { ProgressView } from './components/ProgressView';
 import { ProfileView } from './components/ProfileView';
 import { VaporCanvas } from './components/VaporCanvas';
 import type { VaporCanvasRef } from './components/VaporCanvas';
+import { DynamicIsland } from './components/DynamicIsland';
 
 const MainAppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [lastHitPulseTime, setLastHitPulseTime] = useState<number>(0);
   const { settings } = usePuff();
   const vaporRef = useRef<VaporCanvasRef | null>(null);
 
@@ -19,6 +21,7 @@ const MainAppContent: React.FC = () => {
   }, [settings.theme]);
 
   const handleTriggerVapor = (e?: React.MouseEvent) => {
+    setLastHitPulseTime(Date.now());
     if (vaporRef.current && settings.vaporEffectsEnabled) {
       if (e) {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -33,11 +36,14 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="app-viewport relative flex flex-col justify-between min-h-screen">
+      {/* Apple Dynamic Island Floating Overlay */}
+      <DynamicIsland lastHitPulseTime={lastHitPulseTime} />
+
       {/* Vapor Canvas Particles Overlay */}
       <VaporCanvas ref={vaporRef} enabled={settings.vaporEffectsEnabled} />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none">
+      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-2">
         {activeTab === 'home' && <DailyPuffsView onTriggerVapor={handleTriggerVapor} />}
         {activeTab === 'history' && <HistoryView />}
         {activeTab === 'progress' && <ProgressView />}
