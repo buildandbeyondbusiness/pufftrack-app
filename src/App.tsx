@@ -107,8 +107,8 @@ const MainAppContent: React.FC = () => {
       {/* Vapor Canvas Particles Overlay */}
       <VaporCanvas ref={vaporRef} enabled={settings.vaporEffectsEnabled} />
 
-      {/* Main View Area */}
-      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-[max(64px,calc(env(safe-area-inset-top)+48px))] pb-24">
+      {/* Main View Area with generous top spacing clearing Dynamic Island */}
+      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-[calc(max(12px,env(safe-area-inset-top,20px))+72px)] pb-32">
         {activeTab === 'home' && <DailyPuffsView onTriggerVapor={handleTriggerVapor} />}
         {activeTab === 'history' && <HistoryView />}
         {activeTab === 'progress' && <ProgressView />}

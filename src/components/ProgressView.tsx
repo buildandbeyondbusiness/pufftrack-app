@@ -57,7 +57,7 @@ export const ProgressView: React.FC = () => {
   }, [past7Days]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-20 pt-4">
+    <div className="flex flex-col gap-5 px-4 pb-12 pt-1">
       {/* View Header */}
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">

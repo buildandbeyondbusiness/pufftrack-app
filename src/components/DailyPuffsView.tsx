@@ -63,7 +63,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
   const moodList: MoodTag[] = ['Morning', 'Stress', 'Habit', 'Social', 'Post Meal', 'Boredom', 'Craving'];
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-20 pt-4">
+    <div className="flex flex-col gap-5 px-4 pb-12 pt-1">
       {/* Apple Header */}
       <div className="flex items-center justify-between">
         <div>
