@@ -92,9 +92,9 @@ export const ProgressView: React.FC = () => {
         </div>
 
         {/* 24-Hour Distribution Histogram Bar Chart */}
-        <div className="h-28 w-full mt-1">
+        <div className="h-28 w-full mt-1 overflow-hidden relative">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={hourlyData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+            <BarChart data={hourlyData} margin={{ top: 5, right: 2, left: -32, bottom: 0 }}>
               <XAxis
                 dataKey="hourLabel"
                 stroke="rgba(255,255,255,0.4)"
@@ -102,7 +102,7 @@ export const ProgressView: React.FC = () => {
                 tickLine={false}
                 axisLine={false}
               />
-              <YAxis stroke="transparent" fontSize={9} />
+              <YAxis stroke="transparent" fontSize={9} domain={[0, 'dataMax + 2']} allowDataOverflow={false} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#1c1c1e',
@@ -153,7 +153,7 @@ export const ProgressView: React.FC = () => {
           <span className="text-xs text-[var(--text-main)] font-bold">{weeklyTotalPuffs} Puffs total</span>
         </div>
 
-        <div className="h-36 w-full mt-1">
+        <div className="h-36 w-full mt-1 overflow-hidden relative">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weeklyData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
               <XAxis dataKey="day" stroke="rgba(255,255,255,0.5)" fontSize={11} tickLine={false} />

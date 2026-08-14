@@ -29,7 +29,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
   };
 
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-40 w-full px-4 pb-4 pt-2">
+    <nav className="sticky bottom-0 left-0 right-0 z-40 w-full px-4 pt-2 pb-[max(16px,calc(env(safe-area-inset-bottom)+8px))]">
       <div
         className="mx-auto flex items-center justify-around rounded-full p-1.5 shadow-2xl backdrop-blur-2xl transition-all duration-300"
         style={{

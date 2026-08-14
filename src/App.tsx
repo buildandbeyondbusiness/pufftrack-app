@@ -108,7 +108,7 @@ const MainAppContent: React.FC = () => {
       <VaporCanvas ref={vaporRef} enabled={settings.vaporEffectsEnabled} />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-4">
+      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-[max(64px,calc(env(safe-area-inset-top)+48px))] pb-24">
         {activeTab === 'home' && <DailyPuffsView onTriggerVapor={handleTriggerVapor} />}
         {activeTab === 'history' && <HistoryView />}
         {activeTab === 'progress' && <ProgressView />}
