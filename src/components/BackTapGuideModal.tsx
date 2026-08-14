@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Zap, Copy, Check, X, Sliders, Server } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Zap, Copy, Check, X, Sliders, Server, Send } from 'lucide-react';
 import { usePuff } from '../context/PuffContext';
-import { RENDER_BACKEND_URL } from '../services/backendApi';
+import { backendApi } from '../services/backendApi';
 
 interface BackTapGuideModalProps {
   isOpen: boolean;
@@ -9,11 +9,17 @@ interface BackTapGuideModalProps {
 }
 
 export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, onClose }) => {
-  const { syncKey } = usePuff();
+  const { syncKey, addPuff } = usePuff();
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [serverUrl, setServerUrl] = useState(backendApi.getBackendUrl());
+  const [testStatus, setTestStatus] = useState<string | null>(null);
+  const [isTesting, setIsTesting] = useState(false);
 
-  // Render Express Backend Direct Hit URL (Fastest 24/7 Background Sync!)
-  const backendShortcutUrl = `${RENDER_BACKEND_URL}/hit?key=${syncKey}`;
+  useEffect(() => {
+    setServerUrl(backendApi.getBackendUrl());
+  }, [isOpen]);
+
+  const backendShortcutUrl = `${serverUrl}/hit?key=${syncKey}`;
 
   if (!isOpen) return null;
 
@@ -21,6 +27,26 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
     navigator.clipboard.writeText(backendShortcutUrl);
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2500);
+  };
+
+  const handleServerUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setServerUrl(val);
+    backendApi.setBackendUrl(val);
+  };
+
+  const handleTestHit = async () => {
+    setIsTesting(true);
+    setTestStatus('Pinging server...');
+    const res = await backendApi.logHit(syncKey, 'TestHit');
+    setIsTesting(false);
+    if (res && res.success) {
+      setTestStatus(`✅ Success! Hit #${res.todayCount} logged on Render`);
+      addPuff('Habit', 'Test Server Hit');
+    } else {
+      setTestStatus('⚠️ Server response pending or booting up');
+    }
+    setTimeout(() => setTestStatus(null), 4000);
   };
 
   return (
@@ -38,15 +64,27 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
             <Server className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">24/7 Render Server Sync</h3>
-            <p className="text-[11px] text-zinc-400 font-medium">Silent background logging via Render Backend</p>
+            <h3 className="text-base font-extrabold text-white">Render Server Shortcut Setup</h3>
+            <p className="text-[11px] text-zinc-400 font-medium">Silent background logging via Render Express</p>
           </div>
+        </div>
+
+        {/* Server Domain Customization Input */}
+        <div className="rounded-2xl bg-white/5 p-3 border border-white/10 flex flex-col gap-1.5">
+          <label className="text-[10px] font-semibold text-zinc-400 uppercase">Render Server URL:</label>
+          <input
+            type="text"
+            value={serverUrl}
+            onChange={handleServerUrlChange}
+            placeholder="https://pufftrack-backend.onrender.com"
+            className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-emerald-300 outline-none focus:border-emerald-500"
+          />
         </div>
 
         {/* Copy Trigger URL Card */}
         <div className="rounded-2xl bg-white/5 p-3.5 border border-white/10 flex flex-col gap-2">
           <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-300">
-            <span>Render Server Webhook URL:</span>
+            <span>iOS Shortcut Webhook URL:</span>
             <span className="text-[10px] text-emerald-400 font-mono">4.5m Heartbeat</span>
           </div>
           <div className="flex items-center gap-2">
@@ -64,6 +102,22 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
               <span>{copiedUrl ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
+
+          {/* Test Hit Button */}
+          <button
+            onClick={handleTestHit}
+            disabled={isTesting}
+            className="w-full mt-1 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-emerald-300 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span>{isTesting ? 'Testing Server...' : '🧪 Test Server Webhook Hit'}</span>
+          </button>
+
+          {testStatus && (
+            <div className="text-[11px] font-semibold text-center text-emerald-400 mt-1 animate-in fade-in">
+              {testStatus}
+            </div>
+          )}
         </div>
 
         {/* Step-by-Step Setup Guide */}
@@ -77,7 +131,7 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
             <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-black font-bold text-[10px]">1</span>
               <div>
-                <strong className="text-emerald-300">Add "Get Contents of URL":</strong> Open iOS <strong>Shortcuts</strong> &rarr; tap <strong>+</strong> &rarr; Add action <strong>Get Contents of URL</strong> &rarr; Paste Render Webhook URL above.
+                <strong className="text-emerald-300">Add "Get Contents of URL":</strong> Open iOS <strong>Shortcuts</strong> &rarr; tap <strong>+</strong> &rarr; Add action <strong>Get Contents of URL</strong> &rarr; Paste Webhook URL above.
               </div>
             </div>
 

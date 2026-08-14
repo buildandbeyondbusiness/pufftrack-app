@@ -1,9 +1,23 @@
 // PuffTrack Render Backend API Client & Keep-Alive Service
-export const RENDER_BACKEND_URL = "https://pufftrack-backend.onrender.com";
 
 class BackendApiService {
   private eventSource: EventSource | null = null;
   private pingInterval: any = null;
+  private currentBackendUrl: string;
+
+  constructor() {
+    this.currentBackendUrl = localStorage.getItem('pufftrack_backend_url') || "https://pufftrack-backend.onrender.com";
+  }
+
+  public getBackendUrl(): string {
+    return this.currentBackendUrl;
+  }
+
+  public setBackendUrl(url: string) {
+    const cleanUrl = url.trim().replace(/\/+$/, '');
+    this.currentBackendUrl = cleanUrl;
+    localStorage.setItem('pufftrack_backend_url', cleanUrl);
+  }
 
   // Initialize 4.5 minute Keep-Alive Heartbeat Ping Loop
   public startKeepAlivePing() {
@@ -16,12 +30,17 @@ class BackendApiService {
     }, 4.5 * 60 * 1000);
   }
 
-  public async pingServer() {
+  public async pingServer(): Promise<boolean> {
     try {
-      await fetch(`${RENDER_BACKEND_URL}/ping`, { mode: 'cors' });
-      console.log('[PuffTrack] 4.5m Heartbeat ping sent to Render server');
+      const res = await fetch(`${this.currentBackendUrl}/ping`, { mode: 'cors' });
+      if (res.ok) {
+        console.log('[PuffTrack] 4.5m Heartbeat ping sent to Render server');
+        return true;
+      }
+      return false;
     } catch (e) {
       console.log('[PuffTrack] Backend ping note (offline or initial boot):', e);
+      return false;
     }
   }
 
@@ -32,7 +51,7 @@ class BackendApiService {
     }
 
     try {
-      const url = `${RENDER_BACKEND_URL}/api/stream?key=${encodeURIComponent(key)}`;
+      const url = `${this.currentBackendUrl}/api/stream?key=${encodeURIComponent(key)}`;
       this.eventSource = new EventSource(url);
 
       this.eventSource.onmessage = (event) => {
@@ -64,7 +83,7 @@ class BackendApiService {
   // Trigger hit directly to backend API
   public async logHit(key: string, mood?: string) {
     try {
-      const res = await fetch(`${RENDER_BACKEND_URL}/hit?key=${encodeURIComponent(key)}${mood ? `&mood=${mood}` : ''}`, {
+      const res = await fetch(`${this.currentBackendUrl}/hit?key=${encodeURIComponent(key)}${mood ? `&mood=${mood}` : ''}`, {
         method: 'GET',
         mode: 'cors',
       });
