@@ -6,7 +6,7 @@ class BackendApiService {
   private currentBackendUrl: string;
 
   constructor() {
-    this.currentBackendUrl = localStorage.getItem('pufftrack_backend_url') || "https://pufftrack-backend.onrender.com";
+    this.currentBackendUrl = localStorage.getItem('pufftrack_backend_url') || "https://pufftrack-app.onrender.com";
   }
 
   public getBackendUrl(): string {
