@@ -25,11 +25,11 @@ const MainAppContent: React.FC = () => {
     document.body.className = `theme-${settings.theme}`;
   }, [settings.theme]);
 
-  // Handle URL Query Action Trigger (e.g. ?uid=...&action=puff for iOS Back Tap)
+  // Handle URL Query Action Trigger (e.g. ?key=...&action=puff for iOS Back Tap)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'puff' || params.get('hit') === '1') {
-      const targetUid = params.get('uid') || user?.uid;
+      const targetUid = params.get('key') || params.get('uid') || user?.uid;
       const now = Date.now();
       const newPuff = {
         id: `puff-${now}-${Math.random().toString(36).substr(2, 4)}`,

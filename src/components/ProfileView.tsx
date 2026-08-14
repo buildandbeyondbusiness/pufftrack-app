@@ -415,8 +415,8 @@ export const ProfileView: React.FC = () => {
 
       {/* App Version Footer */}
       <div className="text-center py-4 text-xs text-zinc-500 font-medium">
-        PuffTrack v1.9.0 • Apple Edition
-        <div className="text-[10px] text-zinc-600 font-mono mt-0.5">Build 2026.08.15 • Realtime PWA Cloud Sync</div>
+        PuffTrack v2.0.0 • Apple Edition
+        <div className="text-[10px] text-zinc-600 font-mono mt-0.5">Build 2026.08.15 • Unique Instance Webhook Sync</div>
       </div>
 
       {/* Bottom Scroll Clearance Spacer */}

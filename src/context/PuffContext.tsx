@@ -26,6 +26,7 @@ interface PuffContextType {
   settings: AppSettings;
   user: UserProfile | null;
   isCloudSyncing: boolean;
+  syncKey: string;
   
   // Computed values
   todayPuffs: PuffLog[];
@@ -150,6 +151,45 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(timer);
   }, []);
 
+  const [deviceKey] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem('pufftrack_device_key');
+      if (stored) return stored;
+      const gen = 'PT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      localStorage.setItem('pufftrack_device_key', gen);
+      return gen;
+    } catch (e) {
+      return 'PT-LOCAL';
+    }
+  });
+
+  const syncKey = useMemo(() => user?.uid || deviceKey, [user, deviceKey]);
+
+  // Realtime Firestore Listener for syncKey (runs for both logged in & guest device keys)
+  useEffect(() => {
+    setIsCloudSyncing(true);
+    const unsubPuffs = subscribeUserPuffs(
+      syncKey,
+      (cloudPuffs) => {
+        if (cloudPuffs && cloudPuffs.length > 0) {
+          setPuffs(cloudPuffs);
+        }
+        setIsCloudSyncing(false);
+      },
+      () => setIsCloudSyncing(false)
+    );
+
+    const unsubProfile = subscribeUserProfile(syncKey, (data) => {
+      if (data.vapeProfile) setVapeProfile(data.vapeProfile);
+      if (data.settings) setSettings(data.settings);
+    });
+
+    return () => {
+      unsubPuffs();
+      unsubProfile();
+    };
+  }, [syncKey]);
+
   // Firebase Google Auth Listener
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
@@ -160,34 +200,8 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
         });
-
-        setIsCloudSyncing(true);
-
-        // Subscribe to user's isolated Firestore puffs
-        const unsubPuffs = subscribeUserPuffs(
-          firebaseUser.uid,
-          (cloudPuffs) => {
-            if (cloudPuffs && cloudPuffs.length > 0) {
-              setPuffs(cloudPuffs);
-            }
-            setIsCloudSyncing(false);
-          },
-          () => setIsCloudSyncing(false)
-        );
-
-        // Subscribe to user's isolated profile settings
-        const unsubProfile = subscribeUserProfile(firebaseUser.uid, (data) => {
-          if (data.vapeProfile) setVapeProfile(data.vapeProfile);
-          if (data.settings) setSettings(data.settings);
-        });
-
-        return () => {
-          unsubPuffs();
-          unsubProfile();
-        };
       } else {
         setUser(null);
-        setIsCloudSyncing(false);
       }
     });
 
@@ -486,6 +500,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         settings,
         user,
         isCloudSyncing,
+        syncKey,
         todayPuffs,
         todayCount,
         currentLimit,

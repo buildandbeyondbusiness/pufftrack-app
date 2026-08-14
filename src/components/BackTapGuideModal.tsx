@@ -9,11 +9,9 @@ interface BackTapGuideModalProps {
 }
 
 export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, onClose }) => {
-  const { user } = usePuff();
+  const { syncKey } = usePuff();
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const shortcutUrl = user
-    ? `https://buildandbeyondbusiness.github.io/pufftrack-app/?uid=${user.uid}&action=puff`
-    : "https://buildandbeyondbusiness.github.io/pufftrack-app/?action=puff";
+  const shortcutUrl = `https://buildandbeyondbusiness.github.io/pufftrack-app/?key=${syncKey}&action=puff`;
 
   if (!isOpen) return null;
 
