@@ -178,20 +178,20 @@ export const ProfileView: React.FC = () => {
       )}
 
       {/* iPhone Back Tap & Action Button Setup Card */}
-      <div className="glass-panel p-4 flex items-center justify-between border-l-4 border-l-indigo-500">
+      <div className="glass-panel p-4 flex items-center justify-between border-l-4 border-l-emerald-500">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
             <Zap className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-xs font-bold text-[var(--text-main)]">iPhone Back Tap / Side Button</div>
-            <div className="text-[10px] text-[var(--text-muted)] font-medium">Log puffs by double-tapping back of phone</div>
+            <div className="text-xs font-bold text-[var(--text-main)]">Silent iPhone Back Tap</div>
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Log hits silently in background without opening Safari</div>
           </div>
         </div>
 
         <button
           onClick={() => setShowBackTapGuide(true)}
-          className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md hover:bg-indigo-500 active:scale-95 transition-all"
+          className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-md hover:bg-emerald-500 active:scale-95 transition-all"
         >
           Setup
         </button>
@@ -415,8 +415,8 @@ export const ProfileView: React.FC = () => {
 
       {/* App Version Footer */}
       <div className="text-center py-4 text-xs text-zinc-500 font-medium">
-        PuffTrack v1.6.0 • Apple Edition
-        <div className="text-[10px] text-zinc-600 font-mono mt-0.5">Build 2026.08.15 • Firebase Cloud Sync</div>
+        PuffTrack v1.7.0 • Apple Edition
+        <div className="text-[10px] text-zinc-600 font-mono mt-0.5">Build 2026.08.15 • Silent Background Tracking</div>
       </div>
 
       {/* Bottom Scroll Clearance Spacer */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, Zap, Copy, Check, X, Sliders } from 'lucide-react';
+import { Zap, Copy, Check, X, Sliders, EyeOff } from 'lucide-react';
 
 interface BackTapGuideModalProps {
   isOpen: boolean;
@@ -30,17 +30,17 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
 
         <div className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-            <Smartphone className="h-5 w-5" />
+            <EyeOff className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">iPhone Back Tap Setup</h3>
-            <p className="text-[11px] text-zinc-400 font-medium">Log puffs by tapping the back of your phone</p>
+            <h3 className="text-base font-extrabold text-white">Silent Background Tracking</h3>
+            <p className="text-[11px] text-zinc-400 font-medium">Log hits silently without opening Safari</p>
           </div>
         </div>
 
         {/* Copy Trigger URL Card */}
         <div className="rounded-2xl bg-white/5 p-3.5 border border-white/10 flex flex-col gap-2">
-          <span className="text-[11px] font-semibold text-zinc-300">Your Quick Trigger URL:</span>
+          <span className="text-[11px] font-semibold text-zinc-300">Your Silent Trigger URL:</span>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -62,14 +62,14 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
         <div className="flex flex-col gap-3 pt-1">
           <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
             <Sliders className="h-3.5 w-3.5 text-emerald-400" />
-            3-Step iPhone Setup Guide
+            3-Step Silent Background Setup
           </h4>
 
           <div className="flex flex-col gap-2 text-xs text-zinc-300">
-            <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-white/5 border border-white/5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white font-bold text-[10px]">1</span>
+            <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-black font-bold text-[10px]">1</span>
               <div>
-                <strong className="text-white">Create iOS Shortcut:</strong> Open the iOS <strong>Shortcuts</strong> app &rarr; tap <strong>+</strong> &rarr; Add action <strong>Open URLs</strong> &rarr; Paste the Trigger URL above.
+                <strong className="text-emerald-300">Use "Get Contents of URL":</strong> Open iOS <strong>Shortcuts</strong> &rarr; tap <strong>+</strong> &rarr; Add action <strong>Get Contents of URL</strong> (Do NOT choose Open URL!) &rarr; Paste Trigger URL above.
               </div>
             </div>
 
@@ -89,14 +89,14 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
           </div>
         </div>
 
-        {/* Action Button & Hardware Note */}
+        {/* Action Button & Silent Result Note */}
         <div className="rounded-2xl bg-indigo-500/10 p-3 border border-indigo-500/20 text-[11px] text-indigo-300 flex flex-col gap-1">
           <div className="font-bold flex items-center gap-1">
-            <Zap className="h-3.5 w-3.5" />
-            iPhone 15 Pro / 16 Action Button Support
+            <Zap className="h-3.5 w-3.5 text-amber-400" />
+            100% Silent Background Operation
           </div>
           <div>
-            You can also assign this Shortcut to your physical <strong>Action Button</strong> in iOS Settings &rarr; Action Button!
+            By using <strong>Get Contents of URL</strong>, Safari will <strong>NEVER open</strong> when you double-tap. The hit logs silently in the background!
           </div>
         </div>
 
