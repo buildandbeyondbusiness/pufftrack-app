@@ -19,6 +19,7 @@ import type {
   UserProfile
 } from '../types';
 import { soundManager } from '../utils/audio';
+import { backendApi } from '../services/backendApi';
 
 interface PuffContextType {
   puffs: PuffLog[];
@@ -187,6 +188,24 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       unsubPuffs();
       unsubProfile();
+    };
+  }, [syncKey]);
+
+  // 4.5 Minute Heartbeat Ping & SSE Real-time Server Stream Connection
+  useEffect(() => {
+    backendApi.startKeepAlivePing();
+
+    backendApi.connectStream(syncKey, (data) => {
+      if (data.puff) {
+        setPuffs((prev) => {
+          if (prev.some((p) => p.id === data.puff.id)) return prev;
+          return [data.puff, ...prev];
+        });
+      }
+    });
+
+    return () => {
+      backendApi.disconnectStream();
     };
   }, [syncKey]);
 

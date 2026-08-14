@@ -1,0 +1,79 @@
+// PuffTrack Render Backend API Client & Keep-Alive Service
+export const RENDER_BACKEND_URL = "https://pufftrack-backend.onrender.com";
+
+class BackendApiService {
+  private eventSource: EventSource | null = null;
+  private pingInterval: any = null;
+
+  // Initialize 4.5 minute Keep-Alive Heartbeat Ping Loop
+  public startKeepAlivePing() {
+    this.pingServer();
+    if (this.pingInterval) clearInterval(this.pingInterval);
+    
+    // Ping backend server every 4.5 minutes (270,000 ms) to keep Render awake 24/7
+    this.pingInterval = setInterval(() => {
+      this.pingServer();
+    }, 4.5 * 60 * 1000);
+  }
+
+  public async pingServer() {
+    try {
+      await fetch(`${RENDER_BACKEND_URL}/ping`, { mode: 'cors' });
+      console.log('[PuffTrack] 4.5m Heartbeat ping sent to Render server');
+    } catch (e) {
+      console.log('[PuffTrack] Backend ping note (offline or initial boot):', e);
+    }
+  }
+
+  // Subscribe to real-time Server-Sent Events (SSE) stream for instant hit updates
+  public connectStream(key: string, onHitReceived: (data: any) => void) {
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+
+    try {
+      const url = `${RENDER_BACKEND_URL}/api/stream?key=${encodeURIComponent(key)}`;
+      this.eventSource = new EventSource(url);
+
+      this.eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'PUFF_ADDED') {
+            onHitReceived(data);
+          }
+        } catch (e) {
+          console.error('SSE parse error', e);
+        }
+      };
+
+      this.eventSource.onerror = () => {
+        console.warn('SSE stream error, retrying...');
+      };
+    } catch (e) {
+      console.warn('Failed to connect SSE stream', e);
+    }
+  }
+
+  public disconnectStream() {
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+  }
+
+  // Trigger hit directly to backend API
+  public async logHit(key: string, mood?: string) {
+    try {
+      const res = await fetch(`${RENDER_BACKEND_URL}/hit?key=${encodeURIComponent(key)}${mood ? `&mood=${mood}` : ''}`, {
+        method: 'GET',
+        mode: 'cors',
+      });
+      return await res.json();
+    } catch (e) {
+      console.error('Backend log hit error', e);
+      return null;
+    }
+  }
+}
+
+export const backendApi = new BackendApiService();

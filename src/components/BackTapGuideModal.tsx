@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Zap, Copy, Check, X, Sliders, EyeOff } from 'lucide-react';
-
+import { Zap, Copy, Check, X, Sliders, Server } from 'lucide-react';
 import { usePuff } from '../context/PuffContext';
+import { RENDER_BACKEND_URL } from '../services/backendApi';
 
 interface BackTapGuideModalProps {
   isOpen: boolean;
@@ -11,12 +11,14 @@ interface BackTapGuideModalProps {
 export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, onClose }) => {
   const { syncKey } = usePuff();
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const shortcutUrl = `https://buildandbeyondbusiness.github.io/pufftrack-app/?key=${syncKey}&action=puff`;
+
+  // Render Express Backend Direct Hit URL (Fastest 24/7 Background Sync!)
+  const backendShortcutUrl = `${RENDER_BACKEND_URL}/hit?key=${syncKey}`;
 
   if (!isOpen) return null;
 
   const handleCopyUrl = () => {
-    navigator.clipboard.writeText(shortcutUrl);
+    navigator.clipboard.writeText(backendShortcutUrl);
     setCopiedUrl(true);
     setTimeout(() => setCopiedUrl(false), 2500);
   };
@@ -32,28 +34,31 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-            <EyeOff className="h-5 w-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <Server className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">Silent Background Tracking</h3>
-            <p className="text-[11px] text-zinc-400 font-medium">Log hits silently without opening Safari</p>
+            <h3 className="text-base font-extrabold text-white">24/7 Render Server Sync</h3>
+            <p className="text-[11px] text-zinc-400 font-medium">Silent background logging via Render Backend</p>
           </div>
         </div>
 
         {/* Copy Trigger URL Card */}
         <div className="rounded-2xl bg-white/5 p-3.5 border border-white/10 flex flex-col gap-2">
-          <span className="text-[11px] font-semibold text-zinc-300">Your Silent Trigger URL:</span>
+          <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-300">
+            <span>Render Server Webhook URL:</span>
+            <span className="text-[10px] text-emerald-400 font-mono">4.5m Heartbeat</span>
+          </div>
           <div className="flex items-center gap-2">
             <input
               type="text"
               readOnly
-              value={shortcutUrl}
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-mono text-indigo-300 truncate"
+              value={backendShortcutUrl}
+              className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-mono text-emerald-300 truncate"
             />
             <button
               onClick={handleCopyUrl}
-              className="px-3 py-1.5 rounded-xl bg-[var(--accent-purple)] text-white text-xs font-bold shrink-0 flex items-center gap-1 shadow-md hover:opacity-90 active:scale-95 transition-all"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shrink-0 flex items-center gap-1 shadow-md hover:opacity-90 active:scale-95 transition-all"
             >
               {copiedUrl ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               <span>{copiedUrl ? 'Copied' : 'Copy'}</span>
@@ -65,14 +70,14 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
         <div className="flex flex-col gap-3 pt-1">
           <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
             <Sliders className="h-3.5 w-3.5 text-emerald-400" />
-            3-Step Silent Background Setup
+            3-Step iOS Shortcut Setup
           </h4>
 
           <div className="flex flex-col gap-2 text-xs text-zinc-300">
             <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-black font-bold text-[10px]">1</span>
               <div>
-                <strong className="text-emerald-300">Use "Get Contents of URL":</strong> Open iOS <strong>Shortcuts</strong> &rarr; tap <strong>+</strong> &rarr; Add action <strong>Get Contents of URL</strong> (Do NOT choose Open URL!) &rarr; Paste Trigger URL above.
+                <strong className="text-emerald-300">Add "Get Contents of URL":</strong> Open iOS <strong>Shortcuts</strong> &rarr; tap <strong>+</strong> &rarr; Add action <strong>Get Contents of URL</strong> &rarr; Paste Render Webhook URL above.
               </div>
             </div>
 
@@ -86,26 +91,26 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
             <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-white/5 border border-white/5">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white font-bold text-[10px]">3</span>
               <div>
-                <strong className="text-white">Assign to Double Tap:</strong> Select <strong>Double Tap</strong> &rarr; scroll down to Shortcuts &rarr; select your <strong>PuffTrack</strong> shortcut!
+                <strong className="text-white">Assign to Double Tap:</strong> Select <strong>Double Tap</strong> &rarr; choose your <strong>PuffTrack</strong> shortcut!
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Button & Silent Result Note */}
+        {/* Render 4.5m Heartbeat Note */}
         <div className="rounded-2xl bg-indigo-500/10 p-3 border border-indigo-500/20 text-[11px] text-indigo-300 flex flex-col gap-1">
           <div className="font-bold flex items-center gap-1">
             <Zap className="h-3.5 w-3.5 text-amber-400" />
-            100% Silent Background Operation
+            4.5-Minute Anti-Sleep Heartbeat Loop
           </div>
           <div>
-            By using <strong>Get Contents of URL</strong>, Safari will <strong>NEVER open</strong> when you double-tap. The hit logs silently in the background!
+            The app and backend ping each other every <strong>4.5 minutes</strong> to keep Render awake 24/7 with zero cold starts!
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="w-full py-2.5 rounded-2xl bg-[var(--accent-purple)] text-white text-xs font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all mt-1"
+          className="w-full py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all mt-1"
         >
           Got It!
         </button>
