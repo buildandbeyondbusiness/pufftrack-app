@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { usePuff } from '../context/PuffContext';
-import { LogIn, LogOut, Cloud, CloudOff, Smartphone, Palette, Volume2, Download, Upload, Trash2, Check, DownloadCloud } from 'lucide-react';
+import { LogIn, LogOut, Cloud, CloudOff, Smartphone, Palette, Volume2, Download, Upload, Trash2, Check, DownloadCloud, Zap } from 'lucide-react';
 import type { AppTheme, VapeDeviceType } from '../types';
 import { isFirebaseConfigured } from '../firebase/config';
+import { BackTapGuideModal } from './BackTapGuideModal';
 
 export const ProfileView: React.FC = () => {
   const {
@@ -24,6 +25,7 @@ export const ProfileView: React.FC = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [showBackTapGuide, setShowBackTapGuide] = useState(false);
 
   // Catch PWA Install Prompt
   useEffect(() => {
@@ -174,6 +176,29 @@ export const ProfileView: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* iPhone Back Tap & Action Button Setup Card */}
+      <div className="glass-panel p-4 flex items-center justify-between border-l-4 border-l-indigo-500">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400">
+            <Zap className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[var(--text-main)]">iPhone Back Tap / Side Button</div>
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Log puffs by double-tapping back of phone</div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowBackTapGuide(true)}
+          className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold shadow-md hover:bg-indigo-500 active:scale-95 transition-all"
+        >
+          Setup
+        </button>
+      </div>
+
+      {/* Back Tap Setup Guide Modal */}
+      <BackTapGuideModal isOpen={showBackTapGuide} onClose={() => setShowBackTapGuide(false)} />
 
       {/* Vape Profile Setup */}
       <div className="glass-panel p-4 flex flex-col gap-3">
