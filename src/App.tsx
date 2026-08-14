@@ -9,20 +9,21 @@ import { ProfileView } from './components/ProfileView';
 import { VaporCanvas } from './components/VaporCanvas';
 import type { VaporCanvasRef } from './components/VaporCanvas';
 import { DynamicIsland } from './components/DynamicIsland';
-import { CheckCircle2 } from 'lucide-react';
+import { MacOSNotification } from './components/MacOSNotification';
+import type { ToastMessage } from './components/MacOSNotification';
 
 const MainAppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [lastHitPulseTime, setLastHitPulseTime] = useState<number>(0);
-  const [backTapToast, setBackTapToast] = useState<string | null>(null);
-  const { settings, addPuff } = usePuff();
+  const [macNotification, setMacNotification] = useState<ToastMessage | null>(null);
+  const { settings, addPuff, todayCount, currentLimit } = usePuff();
   const vaporRef = useRef<VaporCanvasRef | null>(null);
 
   useEffect(() => {
     document.body.className = `theme-${settings.theme}`;
   }, [settings.theme]);
 
-  // Handle URL Query Action Trigger (e.g. ?action=puff or ?hit=1 for iOS Back Tap / Shortcuts)
+  // Handle URL Query Action Trigger (e.g. ?action=puff for iOS Back Tap)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'puff' || params.get('hit') === '1') {
@@ -31,19 +32,21 @@ const MainAppContent: React.FC = () => {
       if (vaporRef.current && settings.vaporEffectsEnabled) {
         vaporRef.current.emitPuff(undefined, undefined, 35);
       }
-      setBackTapToast('Puff logged via iPhone Back Tap / Shortcut! 📲');
-      setTimeout(() => setBackTapToast(null), 3500);
+      setMacNotification({
+        id: `backtap-${Date.now()}`,
+        title: 'iPhone Back Tap Hit Registered',
+        subtitle: `Puff #${todayCount + 1} logged via Back Tap gesture.`,
+        type: 'success',
+      });
 
-      // Clean URL parameters without reloading
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [addPuff, settings.vaporEffectsEnabled]);
+  }, [addPuff, settings.vaporEffectsEnabled, todayCount]);
 
-  // Handle Physical Hardware Keyboard / Side Button Shortcuts (e.g., Spacebar)
+  // Handle Spacebar Trigger
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Trigger puff on Spacebar when not typing in input fields
       if (e.code === 'Space' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) {
         e.preventDefault();
         addPuff();
@@ -51,15 +54,33 @@ const MainAppContent: React.FC = () => {
         if (vaporRef.current && settings.vaporEffectsEnabled) {
           vaporRef.current.emitPuff(undefined, undefined, 30);
         }
+
+        if (todayCount + 1 >= currentLimit) {
+          setMacNotification({
+            id: `warning-${Date.now()}`,
+            title: 'Daily Limit Reached',
+            subtitle: `You have reached your limit of ${currentLimit} puffs today.`,
+            type: 'warning',
+          });
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [addPuff, settings.vaporEffectsEnabled]);
+  }, [addPuff, settings.vaporEffectsEnabled, todayCount, currentLimit]);
 
   const handleTriggerVapor = (e?: React.MouseEvent) => {
     setLastHitPulseTime(Date.now());
+    if (todayCount + 1 >= currentLimit) {
+      setMacNotification({
+        id: `warning-${Date.now()}`,
+        title: 'Daily Puff Limit Reached',
+        subtitle: `You reached ${todayCount + 1}/${currentLimit} puffs for today.`,
+        type: 'warning',
+      });
+    }
+
     if (vaporRef.current && settings.vaporEffectsEnabled) {
       if (e) {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -74,22 +95,20 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="app-viewport relative flex flex-col justify-between min-h-screen">
-      {/* Back Tap / Hardware Shortcut Toast Banner */}
-      {backTapToast && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-500 text-black font-bold text-xs shadow-2xl animate-in fade-in slide-in-from-top-4">
-          <CheckCircle2 className="h-4 w-4 stroke-[3]" />
-          <span>{backTapToast}</span>
-        </div>
-      )}
-
-      {/* Apple Dynamic Island Floating Overlay */}
+      {/* Centered Apple Dynamic Island Overlay */}
       <DynamicIsland lastHitPulseTime={lastHitPulseTime} />
+
+      {/* macOS Sequoia Dropdown Notification Banner */}
+      <MacOSNotification
+        notification={macNotification}
+        onDismiss={() => setMacNotification(null)}
+      />
 
       {/* Vapor Canvas Particles Overlay */}
       <VaporCanvas ref={vaporRef} enabled={settings.vaporEffectsEnabled} />
 
       {/* Main View Area */}
-      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-2">
+      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-4">
         {activeTab === 'home' && <DailyPuffsView onTriggerVapor={handleTriggerVapor} />}
         {activeTab === 'history' && <HistoryView />}
         {activeTab === 'progress' && <ProgressView />}

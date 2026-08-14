@@ -40,30 +40,33 @@ export const DynamicIsland: React.FC<DynamicIslandProps> = ({ lastHitPulseTime }
   };
 
   return (
-    <div className="sticky top-2 z-50 flex justify-center w-full px-4 pointer-events-none">
+    <div className="fixed top-[max(10px,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-50 flex justify-center w-full max-w-[480px] pointer-events-none px-4">
       <div
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`pointer-events-auto relative flex items-center justify-between shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer backdrop-blur-3xl select-none ${
+        className={`pointer-events-auto relative flex items-center justify-between shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer backdrop-blur-3xl select-none mx-auto ${
           isExpanded
-            ? 'w-full max-w-[360px] rounded-[32px] p-4 bg-black/90 border border-white/20 shadow-sky-500/20 shadow-2xl'
+            ? 'w-full max-w-[360px] rounded-[32px] p-4 bg-black/90 border border-white/20 shadow-indigo-500/20 shadow-2xl'
             : isPuffPulse
             ? 'w-[280px] rounded-full px-4 py-2.5 bg-black/95 border border-indigo-500/50 shadow-indigo-500/40 ring-4 ring-indigo-500/20'
             : isOverLimit
             ? 'w-[210px] rounded-full px-3.5 py-1.5 bg-black/90 border border-red-500/50 shadow-red-500/30'
-            : 'w-[190px] rounded-full px-3 py-1.5 bg-black/80 border border-white/10 hover:border-white/25 hover:w-[205px]'
+            : 'w-[190px] rounded-full px-3 py-1.5 bg-black/85 border border-white/15 hover:border-white/30 hover:w-[205px]'
         }`}
       >
+        {/* Specular Edge Highlight */}
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-full" />
+
         {/* Expanded Live Activity Widget View */}
         {isExpanded ? (
           <div className="flex flex-col gap-3 w-full animate-in fade-in zoom-in-95 duration-300">
             {/* Top Widget Bar */}
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent-purple-glow)] text-[var(--accent-purple)]">
-                  <Flame className="h-4 w-4 fill-[var(--accent-purple)]" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <Flame className="h-4 w-4 fill-indigo-400" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-1">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
                     <span>PuffTrack Live Activity</span>
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
                   </div>
@@ -74,19 +77,19 @@ export const DynamicIsland: React.FC<DynamicIslandProps> = ({ lastHitPulseTime }
               <ChevronDown className="h-4 w-4 text-zinc-400 hover:text-white transition-colors" />
             </div>
 
-            {/* Middle Stats Grid inside Dynamic Island */}
+            {/* Middle Stats Grid */}
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl bg-white/5 p-2">
+              <div className="rounded-2xl bg-white/5 p-2 border border-white/5">
                 <div className="text-lg font-extrabold text-white">{todayCount}</div>
                 <div className="text-[9px] text-zinc-400 uppercase font-semibold">Today</div>
               </div>
 
-              <div className="rounded-2xl bg-white/5 p-2">
+              <div className="rounded-2xl bg-white/5 p-2 border border-white/5">
                 <div className="text-lg font-extrabold text-indigo-400">{todayNicotineMg} <span className="text-[9px]">mg</span></div>
                 <div className="text-[9px] text-zinc-400 uppercase font-semibold">Nicotine</div>
               </div>
 
-              <div className="rounded-2xl bg-white/5 p-2">
+              <div className="rounded-2xl bg-white/5 p-2 border border-white/5">
                 <div className="text-lg font-extrabold text-emerald-400">{currentLimit}</div>
                 <div className="text-[9px] text-zinc-400 uppercase font-semibold">Limit</div>
               </div>
@@ -103,7 +106,7 @@ export const DynamicIsland: React.FC<DynamicIslandProps> = ({ lastHitPulseTime }
                   e.stopPropagation();
                   addPuff();
                 }}
-                className="flex items-center gap-1 rounded-full bg-[var(--accent-purple)] px-3 py-1 text-xs font-bold text-white shadow-lg hover:opacity-90 active:scale-95 transition-all"
+                className="flex items-center gap-1 rounded-full bg-[var(--accent-purple)] px-3.5 py-1.5 text-xs font-bold text-white shadow-lg hover:opacity-90 active:scale-95 transition-all"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Quick Hit</span>
