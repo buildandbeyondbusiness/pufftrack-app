@@ -19,15 +19,15 @@ class BackendApiService {
     localStorage.setItem('pufftrack_backend_url', cleanUrl);
   }
 
-  // Initialize 14 minute Keep-Alive Heartbeat Ping Loop
+  // Initialize 12 minute Keep-Alive Heartbeat Ping Loop
   public startKeepAlivePing() {
     this.pingServer();
     if (this.pingInterval) clearInterval(this.pingInterval);
     
-    // Ping backend server every 14 minutes (840,000 ms) to keep Render awake 24/7
+    // Ping backend server every 12 minutes (720,000 ms) to keep Render awake 24/7
     this.pingInterval = setInterval(() => {
       this.pingServer();
-    }, 14 * 60 * 1000);
+    }, 12 * 60 * 1000);
   }
 
   public async pingServer(): Promise<boolean> {
