@@ -1,7 +1,26 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePuff } from '../context/PuffContext';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
-import { Activity, Clock, Zap, PieChart as PieIcon } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  ReferenceLine
+} from 'recharts';
+import {
+  Clock,
+  PieChart as PieIcon,
+  ChevronLeft,
+  ChevronRight,
+  Wind,
+  TrendingUp,
+  Activity
+} from 'lucide-react';
 
 export const ProgressView: React.FC = () => {
   const {
@@ -9,11 +28,18 @@ export const ProgressView: React.FC = () => {
     currentLimit,
     hourlyDistribution,
     past7Days,
-    averageBreakMinutes,
-    todayNicotineMg,
-    todayCost,
     puffs,
+    lungHealth,
   } = usePuff();
+
+  // Date Navigator state (Matching Sketch top header: < April 4th >)
+  const [selectedDateOffset, setSelectedDateOffset] = useState<number>(0);
+
+  const selectedDateLabel = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - selectedDateOffset);
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  }, [selectedDateOffset]);
 
   // Hourly Bar Data formatting (00h, 06h, 12h, 18h labels)
   const hourlyData = useMemo(() => {
@@ -49,10 +75,7 @@ export const ProgressView: React.FC = () => {
     return result.sort((a, b) => b.value - a.value);
   }, [puffs]);
 
-  // Percent over or under limit today
-  const overLimitPercent = Math.max(0, Math.round(((todayCount - currentLimit) / Math.max(1, currentLimit)) * 100));
-
-  // Weekly bar data
+  // Weekly trend chart data
   const weeklyData = useMemo(() => {
     return past7Days.map((d) => {
       const dayName = new Date(d.dateStr).toLocaleDateString('en-US', { weekday: 'short' });
@@ -69,112 +92,86 @@ export const ProgressView: React.FC = () => {
     return past7Days.reduce((acc, curr) => acc + curr.puffCount, 0);
   }, [past7Days]);
 
+  const weeklyDailyAverage = Math.round(weeklyTotalPuffs / 7);
+
   const MOOD_COLORS = ['#0a84ff', '#ff375f', '#30d158', '#64d2ff', '#ffd60a', '#bf5af2', '#ff9f0a'];
+
+  const getLungColor = (status: string) => {
+    switch (status) {
+      case 'Optimal':
+        return '#30d158';
+      case 'Good':
+        return '#64d2ff';
+      case 'Moderate':
+        return '#ffd60a';
+      case 'Strained':
+        return '#ff9f0a';
+      default:
+        return '#ff453a';
+    }
+  };
 
   return (
     <div className="flex flex-col gap-5 px-4 pb-12 pt-1">
-      {/* View Header */}
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">
-          Analytics & Insights
-        </h1>
-        <p className="text-xs text-[var(--text-muted)] font-medium">
-          Deep Habit Distribution & Nicotine Metrics
-        </p>
-      </div>
-
-      {/* Puffs Today Card */}
-      <div className="glass-panel p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-semibold">
-          <span className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-[var(--accent-purple)]" />
-            24-Hour Distribution Today
-          </span>
-          <span className={overLimitPercent > 0 ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
-            {overLimitPercent > 0 ? `${overLimitPercent}% Over limit` : 'Within limit'}
-          </span>
-        </div>
-
-        <div className="flex items-baseline justify-between">
+      {/* View Header with Date Navigator (Matching Sketch Top: < April 4th >) */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
           <div>
-            <span className="text-3xl font-extrabold text-[var(--text-main)]">{todayCount}</span>
-            <span className="text-xs text-[var(--text-muted)] ml-1 font-medium">puffs</span>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">
+              Analytics
+            </h1>
+            <p className="text-xs text-[var(--text-muted)] font-medium">
+              Health Indicators & Habit Distribution
+            </p>
           </div>
-          <div className="text-right">
-            <span className="text-lg font-bold text-[var(--accent-purple)]">{todayNicotineMg} mg</span>
-            <div className="text-[10px] text-[var(--text-muted)]">Nicotine consumed</div>
-          </div>
-        </div>
 
-        {/* 24-Hour Histogram Bar Chart with Theme-Aware Tooltip */}
-        <div className="h-28 w-full mt-1 overflow-hidden relative">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={hourlyData} margin={{ top: 5, right: 2, left: -32, bottom: 0 }}>
-              <XAxis
-                dataKey="hourLabel"
-                stroke="var(--text-muted)"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis stroke="transparent" fontSize={9} domain={[0, 'dataMax + 2']} allowDataOverflow={false} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--bg-card)',
-                  color: 'var(--text-main)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '14px',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                  fontSize: '11px',
-                }}
-                itemStyle={{ color: 'var(--accent-purple)' }}
-                labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold' }}
-                formatter={(val) => [`${val ?? 0} puffs`, 'Hits']}
-                labelFormatter={(label, payload) => {
-                  const item = payload[0]?.payload;
-                  return item ? `${item.hourNum}:00 - ${item.hourNum + 1}:00` : label;
-                }}
-              />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {hourlyData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.count > 0 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.08)'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* 2 Micro Metrics: Peak Hour & Avg Break */}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border-subtle)]">
-          <div>
-            <div className="text-base font-bold text-[var(--text-main)]">{mostActiveHour}</div>
-            <div className="text-[11px] text-[var(--text-muted)] font-medium">Peak vaping hour</div>
-          </div>
-          <div className="text-right">
-            <div className="text-base font-bold text-[var(--text-main)]">
-              {averageBreakMinutes > 0 ? `${averageBreakMinutes} min` : 'N/A'}
-            </div>
-            <div className="text-[11px] text-[var(--text-muted)] font-medium">Average break</div>
+          {/* Date Selector Header (< Date >) */}
+          <div className="flex items-center gap-1.5 rounded-full bg-[var(--bg-card)] px-2.5 py-1 border border-[var(--border-subtle)] shadow-md">
+            <button
+              onClick={() => setSelectedDateOffset((prev) => prev + 1)}
+              className="p-1 rounded-full text-[var(--text-muted)] hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs font-bold text-[var(--text-main)] px-1 whitespace-nowrap">
+              {selectedDateOffset === 0 ? 'Today' : selectedDateLabel}
+            </span>
+            <button
+              onClick={() => setSelectedDateOffset((prev) => Math.max(0, prev - 1))}
+              disabled={selectedDateOffset === 0}
+              className={`p-1 rounded-full transition-all ${
+                selectedDateOffset === 0
+                  ? 'text-zinc-600 cursor-not-allowed'
+                  : 'text-[var(--text-muted)] hover:text-white hover:bg-white/10 cursor-pointer'
+              }`}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Puffs, Week Chart */}
+      {/* Weekly Trend Chart Card (Matching Sketch "Weekly trend") */}
       <div className="glass-panel p-4 flex flex-col gap-3">
         <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-semibold">
-          <span className="flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5 text-[var(--accent-pink)]" />
-            Weekly Activity Overview
+          <span className="flex items-center gap-1.5 text-[var(--accent-pink)]">
+            <TrendingUp className="h-3.5 w-3.5" />
+            Weekly Trend
           </span>
-          <span className="text-xs text-[var(--text-main)] font-bold">{weeklyTotalPuffs} Puffs total</span>
+          <span className="text-xs text-[var(--text-main)] font-bold">
+            {weeklyDailyAverage} hits/day avg
+          </span>
         </div>
 
-        <div className="h-36 w-full mt-1 overflow-hidden relative">
+        <div className="h-40 w-full mt-1 overflow-hidden relative">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weeklyData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+            <AreaChart data={weeklyData} margin={{ top: 10, right: 5, left: -25, bottom: 0 }}>
+              <defs>
+                <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--accent-purple)" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="var(--accent-purple)" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
               <XAxis dataKey="day" stroke="var(--text-muted)" fontSize={11} tickLine={false} />
               <YAxis stroke="var(--text-muted)" fontSize={10} />
               <Tooltip
@@ -188,81 +185,158 @@ export const ProgressView: React.FC = () => {
                 }}
                 itemStyle={{ color: 'var(--accent-purple)' }}
                 labelStyle={{ color: 'var(--text-main)', fontWeight: 'bold' }}
+                formatter={(val) => [`${val ?? 0} puffs`, 'Puffs Logged']}
               />
               <ReferenceLine y={currentLimit} stroke="#ff453a" strokeDasharray="3 3" />
-              <Bar dataKey="puffs" radius={[6, 6, 0, 0]}>
-                {weeklyData.map((entry, index) => (
-                  <Cell
-                    key={`w-cell-${index}`}
-                    fill={entry.isOver ? '#ff453a' : 'var(--accent-purple)'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
+              <Area
+                type="monotone"
+                dataKey="puffs"
+                stroke="var(--accent-purple)"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#trendGradient)"
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* NEW DEEP INSIGHT 1: Mood & Trigger Distribution */}
-      {moodBreakdown.length > 0 && (
-        <div className="glass-panel p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-semibold">
-            <span className="flex items-center gap-1.5 text-[var(--accent-cyan)]">
-              <PieIcon className="h-3.5 w-3.5" />
-              Trigger & Mood Breakdown
+      {/* Dual Summary Cards (Matching Sketch: Left 'LUNGHEALTH Moderate' + Right 'Weekly Total 260') */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Left Card: LUNG HEALTH (From Sketch) */}
+        <div className="glass-panel p-4 flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-xl"
+              style={{ backgroundColor: `${getLungColor(lungHealth.status)}20`, color: getLungColor(lungHealth.status) }}
+            >
+              <Wind className="h-4 w-4" />
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/5 text-[var(--text-muted)]">
+              {lungHealth.score}/100
             </span>
-            <span className="text-[10px] text-[var(--text-muted)]">Top triggers</span>
           </div>
 
-          <div className="flex flex-col gap-2 pt-1">
-            {moodBreakdown.slice(0, 5).map((item, idx) => {
-              const totalLoggedMoods = moodBreakdown.reduce((acc, curr) => acc + curr.value, 0);
-              const pct = Math.round((item.value / Math.max(1, totalLoggedMoods)) * 100);
-              const color = MOOD_COLORS[idx % MOOD_COLORS.length];
-
-              return (
-                <div key={item.name} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-[var(--text-main)] flex items-center gap-1.5">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
-                      {item.name}
-                    </span>
-                    <span className="text-[var(--text-muted)]">{pct}% ({item.value} hits)</span>
-                  </div>
-
-                  <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, backgroundColor: color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-3">
+            <div className="text-[10px] uppercase tracking-wider font-extrabold text-[var(--text-muted)]">
+              Lung Health
+            </div>
+            <div
+              className="text-lg font-black tracking-tight mt-0.5"
+              style={{ color: getLungColor(lungHealth.status) }}
+            >
+              {lungHealth.status}
+            </div>
+            <div className="text-[10px] text-[var(--text-muted)] mt-1 line-clamp-2 leading-tight">
+              {lungHealth.recoveryPace}
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Usage Summary Card */}
-      <div className="glass-panel p-4 flex flex-col gap-3">
-        <h3 className="text-sm font-bold text-[var(--text-main)] flex items-center gap-1.5">
-          <Zap className="h-4 w-4 text-[var(--accent-green)]" />
-          Consumption Highlights
-        </h3>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
-            <div className="text-xs text-[var(--text-muted)] font-medium">Est. Daily Cost</div>
-            <div className="text-lg font-bold text-[var(--text-main)] mt-1">${todayCost}</div>
+        {/* Right Card: Weekly Total (From Sketch) */}
+        <div className="glass-panel p-4 flex flex-col justify-between relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
+              <Activity className="h-4 w-4" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400">7 Days</span>
           </div>
-          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
-            <div className="text-xs text-[var(--text-muted)] font-medium">Target Limit</div>
-            <div className="text-lg font-bold text-[var(--accent-purple)] mt-1">{currentLimit} hits/day</div>
+
+          <div className="mt-3">
+            <div className="text-[10px] uppercase tracking-wider font-extrabold text-[var(--text-muted)]">
+              Weekly Total
+            </div>
+            <div className="text-2xl font-black text-[var(--text-main)] tracking-tight mt-0.5">
+              {weeklyTotalPuffs}
+            </div>
+            <div className="text-[10px] text-[var(--text-muted)] mt-1">
+              {todayCount} logged today
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Scroll Clearance Spacer */}
+      {/* Breakdown Section (Matching Sketch bottom "Breakdown" area) */}
+      <div className="glass-panel p-4 flex flex-col gap-4">
+        <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-main)] flex items-center gap-1.5">
+          <PieIcon className="h-3.5 w-3.5 text-[var(--accent-cyan)]" />
+          Habit Breakdown & Distribution
+        </h3>
+
+        {/* 24-Hour Histogram */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              24-Hour Timeline
+            </span>
+            <span className="font-semibold text-[var(--text-main)]">Peak: {mostActiveHour}</span>
+          </div>
+
+          <div className="h-24 w-full mt-1 overflow-hidden relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={hourlyData} margin={{ top: 2, right: 2, left: -32, bottom: 0 }}>
+                <XAxis dataKey="hourLabel" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="transparent" fontSize={9} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                  }}
+                  itemStyle={{ color: 'var(--accent-purple)' }}
+                  formatter={(val) => [`${val ?? 0} hits`, 'Puffs']}
+                />
+                <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                  {hourlyData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.count > 0 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.08)'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Mood & Trigger Breakdown */}
+        {moodBreakdown.length > 0 && (
+          <div className="flex flex-col gap-2 pt-2 border-t border-[var(--border-subtle)]">
+            <div className="text-xs font-semibold text-[var(--text-muted)]">Top Triggers</div>
+            <div className="flex flex-col gap-2">
+              {moodBreakdown.slice(0, 4).map((item, idx) => {
+                const totalLoggedMoods = moodBreakdown.reduce((acc, curr) => acc + curr.value, 0);
+                const pct = Math.round((item.value / Math.max(1, totalLoggedMoods)) * 100);
+                const color = MOOD_COLORS[idx % MOOD_COLORS.length];
+
+                return (
+                  <div key={item.name} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className="text-[var(--text-main)] flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                        {item.name}
+                      </span>
+                      <span className="text-[var(--text-muted)]">{pct}% ({item.value})</span>
+                    </div>
+
+                    <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Scroll Clearance */}
       <div className="h-16 w-full shrink-0" />
     </div>
   );

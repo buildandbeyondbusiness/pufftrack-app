@@ -42,6 +42,18 @@ export interface UserProfile {
   photoURL: string | null;
 }
 
+export type NavTabType = 'home' | 'models' | 'analytics' | 'history';
+
+export type LungHealthStatus = 'Optimal' | 'Good' | 'Moderate' | 'Strained' | 'Heavy';
+
+export interface LungHealthInfo {
+  status: LungHealthStatus;
+  score: number; // 0 - 100
+  recoveryPace: string;
+  advice: string;
+  cleanTimeMinutes: number;
+}
+
 export interface DaySummary {
   dateStr: string; // YYYY-MM-DD
   puffCount: number;
@@ -49,3 +61,4 @@ export interface DaySummary {
   nicotineMg: number;
   estimatedCost: number;
 }
+
