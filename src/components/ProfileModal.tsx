@@ -76,11 +76,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     }
   };
 
-  const themes: { id: AppTheme; label: string; bg: string }[] = [
-    { id: 'apple-dark', label: 'Apple Dark', bg: 'bg-zinc-900 text-white border-zinc-700' },
-    { id: 'apple-light', label: 'Apple Light', bg: 'bg-zinc-100 text-black border-zinc-300' },
-    { id: 'midnight-blue', label: 'Midnight Blue', bg: 'bg-sky-950 text-sky-300 border-sky-800' },
-    { id: 'emerald-ios', label: 'Emerald Mint', bg: 'bg-emerald-950 text-emerald-300 border-emerald-800' },
+  const themes: { id: AppTheme; label: string; dot: string; bg: string }[] = [
+    { id: 'apple-dark', label: 'Apple Dark', dot: '#0a84ff', bg: 'bg-zinc-900 text-white border-zinc-700' },
+    { id: 'apple-light', label: 'Apple Light', dot: '#007aff', bg: 'bg-zinc-100 text-black border-zinc-300' },
+    { id: 'midnight-blue', label: 'Midnight Ocean', dot: '#38bdf8', bg: 'bg-sky-950 text-sky-200 border-sky-800' },
+    { id: 'emerald-ios', label: 'Emerald Mint', dot: '#34d399', bg: 'bg-emerald-950 text-emerald-200 border-emerald-800' },
+    { id: 'cyberpunk-violet', label: 'Cyberpunk Violet', dot: '#c084fc', bg: 'bg-purple-950 text-purple-200 border-purple-800' },
+    { id: 'tokyo-neon', label: 'Tokyo Volt Neon', dot: '#eab308', bg: 'bg-yellow-950 text-yellow-200 border-yellow-800' },
+    { id: 'sunset-coral', label: 'Sunset Coral', dot: '#fb7185', bg: 'bg-rose-950 text-rose-200 border-rose-800' },
+    { id: 'titanium-gold', label: 'Titanium Gold', dot: '#f59e0b', bg: 'bg-amber-950 text-amber-200 border-amber-800' },
+    { id: 'crimson-stealth', label: 'Crimson Stealth', dot: '#ef4444', bg: 'bg-red-950 text-red-200 border-red-800' },
+    { id: 'glacier-arctic', label: 'Glacier Arctic', dot: '#7dd3fc', bg: 'bg-slate-900 text-cyan-200 border-cyan-800' },
   ];
 
   const handleExport = () => {
@@ -253,11 +259,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 key={t.id}
                 onClick={() => updateSettings({ theme: t.id })}
                 className={`p-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between border cursor-pointer ${
-                  settings.theme === t.id ? 'ring-2 ring-[var(--accent-purple)]' : 'opacity-80'
+                  settings.theme === t.id ? 'ring-2 ring-[var(--accent-purple)] shadow-lg' : 'opacity-85 hover:opacity-100'
                 } ${t.bg}`}
               >
-                <span>{t.label}</span>
-                {settings.theme === t.id && <Check className="h-3.5 w-3.5" />}
+                <div className="flex items-center gap-2 truncate">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                    style={{ backgroundColor: t.dot }}
+                  />
+                  <span className="truncate">{t.label}</span>
+                </div>
+                {settings.theme === t.id && <Check className="h-3.5 w-3.5 shrink-0 ml-1" />}
               </button>
             ))}
           </div>

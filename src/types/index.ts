@@ -36,7 +36,17 @@ export interface PodRefillRecord {
   podCapacityMl: number;
 }
 
-export type AppTheme = 'apple-dark' | 'apple-light' | 'midnight-blue' | 'emerald-ios';
+export type AppTheme =
+  | 'apple-dark'
+  | 'apple-light'
+  | 'midnight-blue'
+  | 'emerald-ios'
+  | 'cyberpunk-violet'
+  | 'tokyo-neon'
+  | 'sunset-coral'
+  | 'titanium-gold'
+  | 'crimson-stealth'
+  | 'glacier-arctic';
 
 export interface AppSettings {
   soundEnabled: boolean;

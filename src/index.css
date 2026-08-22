@@ -70,6 +70,96 @@
   --accent-cyan: #2dd4bf;
 }
 
+.theme-cyberpunk-violet {
+  --bg-primary: #09030e;
+  --bg-card: rgba(28, 14, 45, 0.75);
+  --bg-card-hover: rgba(45, 22, 72, 0.85);
+  --bg-accent-pill: rgba(192, 132, 252, 0.18);
+  --border-subtle: rgba(192, 132, 252, 0.2);
+  --text-main: #faf5ff;
+  --text-muted: #d8b4fe;
+  --accent-purple: #c084fc;
+  --accent-purple-glow: rgba(192, 132, 252, 0.45);
+  --accent-pink: #f43f5e;
+  --accent-green: #34d399;
+  --accent-cyan: #38bdf8;
+}
+
+.theme-tokyo-neon {
+  --bg-primary: #08090c;
+  --bg-card: rgba(18, 22, 30, 0.8);
+  --bg-card-hover: rgba(26, 32, 44, 0.9);
+  --bg-accent-pill: rgba(234, 179, 8, 0.15);
+  --border-subtle: rgba(234, 179, 8, 0.2);
+  --text-main: #fefce8;
+  --text-muted: #fef08a;
+  --accent-purple: #eab308; /* Acid Volt / Tokyo Yellow */
+  --accent-purple-glow: rgba(234, 179, 8, 0.45);
+  --accent-pink: #ff007f;
+  --accent-green: #84cc16;
+  --accent-cyan: #06b6d4;
+}
+
+.theme-sunset-coral {
+  --bg-primary: #120609;
+  --bg-card: rgba(35, 14, 21, 0.8);
+  --bg-card-hover: rgba(55, 22, 32, 0.9);
+  --bg-accent-pill: rgba(251, 113, 133, 0.18);
+  --border-subtle: rgba(251, 113, 133, 0.2);
+  --text-main: #fff1f2;
+  --text-muted: #fda4af;
+  --accent-purple: #fb7185; /* Sunset Coral */
+  --accent-purple-glow: rgba(251, 113, 133, 0.45);
+  --accent-pink: #f43f5e;
+  --accent-green: #10b981;
+  --accent-cyan: #f97316;
+}
+
+.theme-titanium-gold {
+  --bg-primary: #0c0b08;
+  --bg-card: rgba(26, 23, 17, 0.8);
+  --bg-card-hover: rgba(40, 35, 25, 0.9);
+  --bg-accent-pill: rgba(245, 158, 11, 0.15);
+  --border-subtle: rgba(245, 158, 11, 0.2);
+  --text-main: #fffbeb;
+  --text-muted: #fcd34d;
+  --accent-purple: #f59e0b; /* Champagne Gold */
+  --accent-purple-glow: rgba(245, 158, 11, 0.45);
+  --accent-pink: #f43f5e;
+  --accent-green: #34d399;
+  --accent-cyan: #38bdf8;
+}
+
+.theme-crimson-stealth {
+  --bg-primary: #0e0305;
+  --bg-card: rgba(32, 10, 15, 0.8);
+  --bg-card-hover: rgba(50, 16, 23, 0.9);
+  --bg-accent-pill: rgba(239, 68, 68, 0.18);
+  --border-subtle: rgba(239, 68, 68, 0.2);
+  --text-main: #fef2f2;
+  --text-muted: #fca5a5;
+  --accent-purple: #ef4444; /* Supercar Crimson */
+  --accent-purple-glow: rgba(239, 68, 68, 0.45);
+  --accent-pink: #f43f5e;
+  --accent-green: #10b981;
+  --accent-cyan: #f97316;
+}
+
+.theme-glacier-arctic {
+  --bg-primary: #030a12;
+  --bg-card: rgba(10, 26, 42, 0.8);
+  --bg-card-hover: rgba(16, 40, 64, 0.9);
+  --bg-accent-pill: rgba(125, 211, 252, 0.18);
+  --border-subtle: rgba(125, 211, 252, 0.2);
+  --text-main: #f0f9ff;
+  --text-muted: #bae6fd;
+  --accent-purple: #7dd3fc; /* Glacier Ice */
+  --accent-purple-glow: rgba(125, 211, 252, 0.45);
+  --accent-pink: #f43f5e;
+  --accent-green: #34d399;
+  --accent-cyan: #38bdf8;
+}
+
 body {
   margin: 0;
   padding: 0;
