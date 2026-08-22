@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Copy, Check, X, Sliders, Globe, Send } from 'lucide-react';
+import { Zap, Copy, Check, X, Globe, Send } from 'lucide-react';
 import { usePuff } from '../context/PuffContext';
 import { backendApi } from '../services/backendApi';
 
@@ -50,8 +50,14 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative max-h-[85vh] overflow-y-auto scrollbar-none border border-white/20 shadow-2xl">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 animate-in fade-in duration-150"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#14151f] rounded-[28px] p-6 w-full max-w-sm flex flex-col gap-4 relative max-h-[85vh] overflow-y-auto scrollbar-none border border-white/15 shadow-2xl"
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
@@ -59,115 +65,109 @@ export const BackTapGuideModal: React.FC<BackTapGuideModalProps> = ({ isOpen, on
           <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-            <Globe className="h-5 w-5" />
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400">
+            <Zap className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-white">Cloudflare Edge Shortcut Setup</h3>
-            <p className="text-[11px] text-zinc-400 font-medium">Instant 0ms background logging on Cloudflare Edge</p>
+            <h3 className="text-base font-extrabold text-white">
+              iPhone Back Tap Setup
+            </h3>
+            <p className="text-xs text-zinc-400">Instant background logging</p>
           </div>
         </div>
 
-        {/* Server Domain Customization Input */}
-        <div className="rounded-2xl bg-white/5 p-3 border border-white/10 flex flex-col gap-1.5">
-          <label className="text-[10px] font-semibold text-zinc-400 uppercase">Cloudflare App / Domain URL:</label>
-          <input
-            type="text"
-            value={serverUrl}
-            onChange={handleServerUrlChange}
-            placeholder="https://pufftrack-app.pages.dev"
-            className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono text-emerald-300 outline-none focus:border-emerald-500"
-          />
-        </div>
-
-        {/* Copy Trigger URL Card */}
-        <div className="rounded-2xl bg-white/5 p-3.5 border border-white/10 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-300">
-            <span>iOS Shortcut Webhook URL:</span>
-            <span className="text-[10px] text-amber-400 font-mono">0ms Cold Start</span>
+        <div className="rounded-2xl bg-white/[0.04] p-3.5 border border-white/10 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-xs font-semibold text-zinc-400">
+            <span>Your Personal Edge Webhook URL:</span>
+            <span className="text-[10px] text-emerald-400 font-bold">Cloudflare Edge</span>
           </div>
+
           <div className="flex items-center gap-2">
             <input
               type="text"
               readOnly
               value={backendShortcutUrl}
-              className="w-full bg-black/50 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] font-mono text-emerald-300 truncate"
+              className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-2 text-xs font-mono text-emerald-300 outline-none select-all"
             />
             <button
               onClick={handleCopyUrl}
-              className="px-3 py-1.5 rounded-xl bg-amber-500 text-black text-xs font-bold shrink-0 flex items-center gap-1 shadow-md hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
             >
               {copiedUrl ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               <span>{copiedUrl ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
+        </div>
 
-          {/* Test Hit Button */}
+        {/* Live Test Webhook Trigger */}
+        <div className="flex flex-col gap-2">
           <button
             onClick={handleTestHit}
             disabled={isTesting}
-            className="w-full mt-1 py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-emerald-300 hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-white border border-white/10 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
           >
-            <Send className="h-3.5 w-3.5" />
-            <span>{isTesting ? 'Testing Edge...' : '🧪 Test Cloudflare Webhook Hit'}</span>
+            <Send className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{isTesting ? 'Sending...' : '⚡️ Test Webhook Now'}</span>
           </button>
-
           {testStatus && (
-            <div className="text-[11px] font-semibold text-center text-emerald-400 mt-1 animate-in fade-in">
+            <div className="text-[11px] text-center font-medium text-emerald-300 bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
               {testStatus}
             </div>
           )}
         </div>
 
-        {/* Step-by-Step Setup Guide */}
-        <div className="flex flex-col gap-3 pt-1">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
-            <Sliders className="h-3.5 w-3.5 text-amber-400" />
-            3-Step iOS Shortcut Setup
-          </h4>
+        {/* Setup Steps */}
+        <div className="flex flex-col gap-2.5 text-xs text-zinc-300">
+          <div className="font-bold text-white uppercase text-[10px] tracking-wider text-zinc-400">
+            3-Step iOS Shortcuts Setup:
+          </div>
 
-          <div className="flex flex-col gap-2 text-xs text-zinc-300">
-            <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-black font-bold text-[10px]">1</span>
-              <div>
-                <strong className="text-amber-300">Add "Get Contents of URL":</strong> Open iOS <strong>Shortcuts</strong> &rarr; tap <strong>+</strong> &rarr; Add action <strong>Get Contents of URL</strong> &rarr; Paste Webhook URL above.
-              </div>
-            </div>
+          <div className="flex gap-2.5 items-start">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 font-bold text-[10px] text-white">
+              1
+            </span>
+            <p className="leading-snug">
+              Open the <strong>Shortcuts app</strong> on your iPhone and tap <strong>+ (New Shortcut)</strong>.
+            </p>
+          </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-white/5 border border-white/5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white font-bold text-[10px]">2</span>
-              <div>
-                <strong className="text-white">Set Back Tap:</strong> Open iOS <strong>Settings</strong> &rarr; <strong>Accessibility</strong> &rarr; <strong>Touch</strong> &rarr; <strong>Back Tap</strong>.
-              </div>
-            </div>
+          <div className="flex gap-2.5 items-start">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 font-bold text-[10px] text-white">
+              2
+            </span>
+            <p className="leading-snug">
+              Add action: <strong>Get Contents of URL</strong> → paste the URL above → change method to <strong>GET</strong>.
+            </p>
+          </div>
 
-            <div className="flex items-start gap-2.5 p-2.5 rounded-2xl bg-white/5 border border-white/5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white font-bold text-[10px]">3</span>
-              <div>
-                <strong className="text-white">Assign to Double Tap:</strong> Select <strong>Double Tap</strong> &rarr; choose your <strong>PuffTrack</strong> shortcut!
-              </div>
-            </div>
+          <div className="flex gap-2.5 items-start">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 font-bold text-[10px] text-white">
+              3
+            </span>
+            <p className="leading-snug">
+              Go to <strong>Settings → Accessibility → Touch → Back Tap</strong> → assign <strong>Double Tap</strong> to this shortcut.
+            </p>
           </div>
         </div>
 
-        {/* Cloudflare Always-On Note */}
-        <div className="rounded-2xl bg-amber-500/10 p-3 border border-amber-500/20 text-[11px] text-amber-300 flex flex-col gap-1">
-          <div className="font-bold flex items-center gap-1">
-            <Zap className="h-3.5 w-3.5 text-amber-400" />
-            Always-On Global Edge
+        {/* Server Endpoint Config */}
+        <div className="border-t border-white/10 pt-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between text-[11px] text-zinc-400">
+            <span className="flex items-center gap-1">
+              <Globe className="h-3 w-3 text-cyan-400" />
+              API Server
+            </span>
+            <span className="text-[10px] font-mono text-zinc-400">Cloudflare Pages</span>
           </div>
-          <div>
-            Powered by Cloudflare Pages & Functions with <strong>0ms cold starts</strong>. No server sleep, instant sync!
-          </div>
+          <input
+            type="text"
+            value={serverUrl}
+            onChange={handleServerUrlChange}
+            placeholder="https://pufftrack-app.pages.dev"
+            className="w-full rounded-xl bg-black/40 border border-white/10 px-3 py-1.5 text-[11px] font-mono text-zinc-300 outline-none"
+          />
         </div>
-
-        <button
-          onClick={onClose}
-          className="w-full py-2.5 rounded-2xl bg-amber-500 text-black text-xs font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all mt-1 cursor-pointer"
-        >
-          Got It!
-        </button>
       </div>
     </div>
   );
