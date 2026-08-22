@@ -437,63 +437,59 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [puffs, currentLimit, nicotinePerPuffMg, costPerPuff]);
 
   // Lung Health calculation based on pacing, session breaks & limit adherence
+  // Lung Health calculation strictly mapped to user Daily Puffs categories:
+  // 0: None, 1–25: Lower, 26–75: Moderate, 76–199: High, 200+: Very High
   const lungHealth: LungHealthInfo = useMemo(() => {
-    let score = 75;
     const cleanMins = Math.floor(timeSinceLastPuffSeconds / 60);
 
-    // Factor 1: Clean time bonus
-    if (cleanMins >= 60) score += 15;
-    else if (cleanMins >= 30) score += 10;
-    else if (cleanMins < 10) score -= 15;
-
-    // Factor 2: Break pacing
-    if (averageBreakMinutes >= 45) score += 10;
-    else if (averageBreakMinutes < 15 && todayCount > 10) score -= 15;
-
-    // Factor 3: Limit compliance
-    if (todayCount > currentLimit) {
-      const over = todayCount - currentLimit;
-      score -= Math.min(30, over * 4);
-    } else if (todayCount <= currentLimit * 0.7) {
-      score += 5;
+    if (todayCount === 0) {
+      return {
+        status: 'None',
+        score: 100,
+        recoveryPace: '0 hits • Airway completely clear',
+        advice: 'Zero hits logged today. Your respiratory tract is fully resting.',
+        cleanTimeMinutes: cleanMins,
+      };
     }
 
-    score = Math.max(15, Math.min(99, score));
+    if (todayCount <= 25) {
+      return {
+        status: 'Lower',
+        score: 85,
+        recoveryPace: '1–25 hits • Minimal aerosol load',
+        advice: 'Lower tier usage. Cilia remain active with quick recovery between hits.',
+        cleanTimeMinutes: cleanMins,
+      };
+    }
 
-    let status: LungHealthInfo['status'] = 'Moderate';
-    let recoveryPace = 'Tissue resting • Airway clearing';
-    let advice = 'Good pace! Keep spacing between hits to let cilia regenerate.';
+    if (todayCount <= 75) {
+      return {
+        status: 'Moderate',
+        score: 65,
+        recoveryPace: '26–75 hits • Moderate volume',
+        advice: 'Moderate exposure. Stay hydrated and keep spacing between pulls.',
+        cleanTimeMinutes: cleanMins,
+      };
+    }
 
-    if (score >= 85) {
-      status = 'Optimal';
-      recoveryPace = 'Full airway clearance • Normal oxygenation';
-      advice = 'Excellent control! Your lungs are experiencing minimal irritation.';
-    } else if (score >= 70) {
-      status = 'Good';
-      recoveryPace = 'Stable breathing rate • Cilia active';
-      advice = 'Healthy spacing today. Maintain longer pauses between pulls.';
-    } else if (score >= 50) {
-      status = 'Moderate';
-      recoveryPace = 'Mild aerosol residue • Baseline recovery';
-      advice = 'Moderate intake. Drink plenty of water to soothe throat tissue.';
-    } else if (score >= 35) {
-      status = 'Strained';
-      recoveryPace = 'Elevated pulse • Airway drying';
-      advice = 'Puff frequency is high. Take a 30-minute break to lower heart rate.';
-    } else {
-      status = 'Heavy';
-      recoveryPace = 'High aerosol load • Irritation likely';
-      advice = 'Exceeded daily threshold. Switch to breathing exercises for the evening.';
+    if (todayCount <= 199) {
+      return {
+        status: 'High',
+        score: 40,
+        recoveryPace: '76–199 hits • Elevated airway load',
+        advice: 'High puff volume today. Take longer breaks to allow lung tissue to rest.',
+        cleanTimeMinutes: cleanMins,
+      };
     }
 
     return {
-      status,
-      score,
-      recoveryPace,
-      advice,
+      status: 'Very High',
+      score: 15,
+      recoveryPace: '200+ hits • Heavy respiratory load',
+      advice: 'Very high volume today. Step away from your vape for the evening.',
       cleanTimeMinutes: cleanMins,
     };
-  }, [timeSinceLastPuffSeconds, averageBreakMinutes, todayCount, currentLimit]);
+  }, [todayCount, timeSinceLastPuffSeconds]);
 
   const resetCurrentPod = () => {
     setPodPuffsUsed(0);

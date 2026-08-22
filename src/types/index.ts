@@ -44,7 +44,7 @@ export interface UserProfile {
 
 export type NavTabType = 'home' | 'models' | 'analytics' | 'history';
 
-export type LungHealthStatus = 'Optimal' | 'Good' | 'Moderate' | 'Strained' | 'Heavy';
+export type LungHealthStatus = 'None' | 'Lower' | 'Moderate' | 'High' | 'Very High';
 
 export interface LungHealthInfo {
   status: LungHealthStatus;

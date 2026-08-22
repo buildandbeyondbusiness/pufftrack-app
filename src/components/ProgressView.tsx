@@ -98,16 +98,19 @@ export const ProgressView: React.FC = () => {
 
   const getLungColor = (status: string) => {
     switch (status) {
-      case 'Optimal':
+      case 'None':
         return '#30d158';
-      case 'Good':
+      case 'Lower':
         return '#38bdf8';
       case 'Moderate':
         return '#ffd60a';
-      case 'Strained':
+      case 'High':
         return '#ff9f0a';
-      default:
+      case 'Very High':
+      case 'Very high':
         return '#ff453a';
+      default:
+        return '#38bdf8';
     }
   };
 
