@@ -9,7 +9,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "deploy:cloudflare": "npm run build && wrangler pages deploy dist --project-name=pufftrack-app",
+    "pages:dev": "wrangler pages dev dist"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

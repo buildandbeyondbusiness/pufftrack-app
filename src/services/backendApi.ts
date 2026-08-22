@@ -1,12 +1,13 @@
-// PuffTrack Render Backend API Client & Keep-Alive Service
+// PuffTrack Cloudflare Edge API Client
 
 class BackendApiService {
   private eventSource: EventSource | null = null;
-  private pingInterval: any = null;
   private currentBackendUrl: string;
 
   constructor() {
-    this.currentBackendUrl = localStorage.getItem('pufftrack_backend_url') || "https://pufftrack-app.onrender.com";
+    // Default to current origin if in browser, or stored custom URL
+    const defaultOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    this.currentBackendUrl = localStorage.getItem('pufftrack_backend_url') || defaultOrigin || 'https://pufftrack-app.pages.dev';
   }
 
   public getBackendUrl(): string {
@@ -19,32 +20,26 @@ class BackendApiService {
     localStorage.setItem('pufftrack_backend_url', cleanUrl);
   }
 
-  // Initialize 12 minute Keep-Alive Heartbeat Ping Loop
+  // Cloudflare is always-on global edge, so ping is just a quick health check
   public startKeepAlivePing() {
     this.pingServer();
-    if (this.pingInterval) clearInterval(this.pingInterval);
-    
-    // Ping backend server every 12 minutes (720,000 ms) to keep Render awake 24/7
-    this.pingInterval = setInterval(() => {
-      this.pingServer();
-    }, 12 * 60 * 1000);
   }
 
   public async pingServer(): Promise<boolean> {
     try {
       const res = await fetch(`${this.currentBackendUrl}/ping`, { mode: 'cors' });
       if (res.ok) {
-        console.log('[PuffTrack] 4.5m Heartbeat ping sent to Render server');
+        console.log('[PuffTrack] Cloudflare Edge ping successful');
         return true;
       }
       return false;
     } catch (e) {
-      console.log('[PuffTrack] Backend ping note (offline or initial boot):', e);
+      console.log('[PuffTrack] Cloudflare Edge ping note:', e);
       return false;
     }
   }
 
-  // Subscribe to real-time Server-Sent Events (SSE) stream for instant hit updates
+  // Subscribe to real-time Server-Sent Events (SSE) stream if available
   public connectStream(key: string, onHitReceived: (data: any) => void) {
     if (this.eventSource) {
       this.eventSource.close();
@@ -66,10 +61,10 @@ class BackendApiService {
       };
 
       this.eventSource.onerror = () => {
-        console.warn('SSE stream error, retrying...');
+        // quiet retry
       };
     } catch (e) {
-      console.warn('Failed to connect SSE stream', e);
+      // quiet fallback to Firestore realtime sync
     }
   }
 
@@ -83,10 +78,13 @@ class BackendApiService {
   // Trigger hit directly to backend API
   public async logHit(key: string, mood?: string) {
     try {
-      const res = await fetch(`${this.currentBackendUrl}/hit?key=${encodeURIComponent(key)}${mood ? `&mood=${mood}` : ''}`, {
-        method: 'GET',
-        mode: 'cors',
-      });
+      const res = await fetch(
+        `${this.currentBackendUrl}/hit?key=${encodeURIComponent(key)}${mood ? `&mood=${encodeURIComponent(mood)}` : ''}`,
+        {
+          method: 'GET',
+          mode: 'cors',
+        }
+      );
       return await res.json();
     } catch (e) {
       console.error('Backend log hit error', e);
