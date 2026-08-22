@@ -1,41 +1,45 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import type { ReactNode } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase/config';
-import {
-  subscribeUserPuffs,
-  syncSavePuff,
-  syncDeletePuff,
-  subscribeUserProfile,
-  syncSaveUserProfile
-} from '../firebase/service';
+import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
 import type {
   PuffLog,
+  Session,
   VapeProfile,
   AppSettings,
-  MoodTag,
   DaySummary,
-  Session,
   UserProfile,
-  LungHealthInfo
+  MoodTag,
+  LungHealthInfo,
+  PodRefillRecord,
 } from '../types';
 import { soundManager } from '../utils/audio';
+import { auth, googleProvider } from '../firebase/config';
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  type User as FirebaseUser,
+} from 'firebase/auth';
+import {
+  syncSavePuff,
+  syncDeletePuff,
+  subscribeUserPuffs,
+  syncSaveUserProfile,
+} from '../firebase/service';
 import { backendApi } from '../services/backendApi';
 
 interface PuffContextType {
+  // Data
   puffs: PuffLog[];
   vapeProfile: VapeProfile;
   settings: AppSettings;
   user: UserProfile | null;
   isCloudSyncing: boolean;
   syncKey: string;
-  
-  // Computed values
+
+  // Stats
   todayPuffs: PuffLog[];
   todayCount: number;
   currentLimit: number;
   nicotinePerPuffMg: number;
-  costPerPuff: number;
   todayNicotineMg: number;
   todayCost: number;
   timeSinceLastPuffSeconds: number;
@@ -46,12 +50,18 @@ interface PuffContextType {
   past7Days: DaySummary[];
   hourlyDistribution: number[]; // 24 items
 
-  // Pod & Refill metrics
+  // Pod & Refill metrics (INR ₹)
   podPuffsUsed: number;
   podPuffsRemaining: number;
   podPercentRemaining: number;
   estimatedDaysUntilRefill: number;
   resetCurrentPod: () => void;
+  refillHistory: PodRefillRecord[];
+  recordPodRefill: (costInr?: number) => void;
+  costPerPuff: number;
+  podSpentCost: number;
+  monthlyEstimatedCost: number;
+  totalRefillSpend: number;
 
   // Lung Health Score & Insights
   lungHealth: LungHealthInfo;
@@ -84,8 +94,9 @@ const DEFAULT_PROFILE: VapeProfile = {
   nicotineMgPerMl: 50,
   podCapacityMl: 13,
   totalPuffsPerPod: 5000,
-  costPerPodOrBottle: 20,
+  costPerPodOrBottle: 1800, // ₹1,800 INR
   dailyLimitGoal: 60,
+  currency: '₹',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -119,14 +130,16 @@ const generateInitialDemoPuffs = (): PuffLog[] => {
       });
     }
   }
-  return list.sort((a, b) => b.timestamp - a.timestamp);
+  return list;
 };
 
-const STORAGE_KEY_PUFFS = 'apple_puff_logs_v3';
-const STORAGE_KEY_PROFILE = 'apple_vape_profile_v3';
-const STORAGE_KEY_SETTINGS = 'apple_app_settings_v3';
+const STORAGE_KEY_PUFFS = 'apple_pufftrack_logs_v1';
+const STORAGE_KEY_PROFILE = 'apple_pufftrack_profile_v1';
+const STORAGE_KEY_SETTINGS = 'apple_pufftrack_settings_v1';
+const STORAGE_KEY_POD_PUFFS = 'apple_pod_puffs_used_v1';
+const STORAGE_KEY_REFILLS = 'apple_pod_refills_v1';
 
-const PuffContext = createContext<PuffContextType | null>(null);
+const PuffContext = createContext<PuffContextType | undefined>(undefined);
 
 export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -145,7 +158,12 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [vapeProfile, setVapeProfile] = useState<VapeProfile>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PROFILE);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.costPerPodOrBottle === 20) parsed.costPerPodOrBottle = 1800;
+        parsed.currency = '₹';
+        return parsed;
+      }
     } catch (e) {
       console.error(e);
     }
@@ -164,12 +182,39 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [podPuffsUsed, setPodPuffsUsed] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('apple_pod_puffs_used_v1');
+      const saved = localStorage.getItem(STORAGE_KEY_POD_PUFFS);
       if (saved) return Number(saved);
     } catch (e) {
       console.error(e);
     }
     return 1850; // Demo initial pod puffs
+  });
+
+  const [refillHistory, setRefillHistory] = useState<PodRefillRecord[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_REFILLS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      {
+        id: 'refill-demo-1',
+        timestamp: Date.now() - 25 * 86400 * 1000,
+        costInr: 1800,
+        puffsLoggedOnPod: 4950,
+        deviceName: 'ElfBar 5000',
+        podCapacityMl: 13,
+      },
+      {
+        id: 'refill-demo-2',
+        timestamp: Date.now() - 52 * 86400 * 1000,
+        costInr: 1800,
+        puffsLoggedOnPod: 5020,
+        deviceName: 'ElfBar 5000',
+        podCapacityMl: 13,
+      }
+    ];
   });
 
   // Timed Session State
@@ -190,83 +235,84 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [isLiveSessionRunning]);
 
   useEffect(() => {
-    localStorage.setItem('apple_pod_puffs_used_v1', podPuffsUsed.toString());
+    localStorage.setItem(STORAGE_KEY_POD_PUFFS, podPuffsUsed.toString());
   }, [podPuffsUsed]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_REFILLS, JSON.stringify(refillHistory));
+  }, [refillHistory]);
 
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
   // Timer tick for live status
   useEffect(() => {
-    const timer = setInterval(() => setNowTimestamp(Date.now()), 1000);
+    const timer = setInterval(() => setNowTimestamp(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
 
-  const [deviceKey] = useState<string>(() => {
+  // Sync key for device shortcuts
+  const syncKey = useMemo(() => {
+    if (user?.uid) return user.uid;
     try {
-      const stored = localStorage.getItem('pufftrack_device_key');
-      if (stored) return stored;
-      const gen = 'PT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const local = localStorage.getItem('pufftrack_device_key');
+      if (local) return local;
+      const gen = 'PT-' + Math.random().toString(36).substring(2, 9).toUpperCase();
       localStorage.setItem('pufftrack_device_key', gen);
       return gen;
-    } catch (e) {
+    } catch {
       return 'PT-LOCAL';
     }
-  });
+  }, [user]);
 
-  const syncKey = useMemo(() => user?.uid || deviceKey, [user, deviceKey]);
-
-  // Realtime Firestore Listener for syncKey
-  useEffect(() => {
-    setIsCloudSyncing(true);
-    const unsubPuffs = subscribeUserPuffs(
-      syncKey,
-      (cloudPuffs) => {
-        if (cloudPuffs && cloudPuffs.length > 0) {
-          setPuffs(cloudPuffs);
-        }
-        setIsCloudSyncing(false);
-      },
-      () => setIsCloudSyncing(false)
-    );
-
-    const unsubProfile = subscribeUserProfile(syncKey, (data) => {
-      if (data.vapeProfile) setVapeProfile(data.vapeProfile);
-      if (data.settings) setSettings(data.settings);
-    });
-
-    return () => {
-      unsubPuffs();
-      unsubProfile();
-    };
-  }, [syncKey]);
-
-  // 4.5 Minute Heartbeat Ping & SSE Stream
+  // Connect to Cloudflare Edge API
   useEffect(() => {
     backendApi.startKeepAlivePing();
 
-    backendApi.connectStream(syncKey, (data) => {
+    backendApi.connectStream(syncKey, (data: any) => {
       if (data.puff) {
+        soundManager.playPuffSound(settings.soundEnabled);
+        soundManager.triggerHaptic(settings.hapticsEnabled, 25);
         setPuffs((prev) => {
-          if (prev.some((p) => p.id === data.puff.id)) return prev;
+          if (prev.some((p) => p.id === data.puff.id || Math.abs(p.timestamp - data.puff.timestamp) < 1000)) {
+            return prev;
+          }
           return [data.puff, ...prev];
         });
+        setPodPuffsUsed((prev) => prev + 1);
       }
     });
 
     return () => {
       backendApi.disconnectStream();
     };
-  }, [syncKey]);
+  }, [syncKey, settings.soundEnabled, settings.hapticsEnabled]);
 
-  // Firebase Google Auth Listener
+  // Auth Listener
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        setUser({
+        const uProfile: UserProfile = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
+        };
+        setUser(uProfile);
+        setIsCloudSyncing(true);
+
+        subscribeUserPuffs(firebaseUser.uid, (cloudPuffs: PuffLog[]) => {
+          setPuffs((localPuffs) => {
+            const combined = [...cloudPuffs];
+            localPuffs.forEach((lp) => {
+              if (!combined.some((cp) => cp.id === lp.id)) {
+                combined.push(lp);
+                syncSavePuff(firebaseUser.uid, lp);
+              }
+            });
+            combined.sort((a, b) => b.timestamp - a.timestamp);
+            return combined;
+          });
+          setIsCloudSyncing(false);
         });
       } else {
         setUser(null);
@@ -303,8 +349,9 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return vapeProfile.totalPuffsPerPod > 0 ? totalNic / vapeProfile.totalPuffsPerPod : 0.1;
   }, [vapeProfile]);
 
+  // Cost per puff in INR (₹)
   const costPerPuff = useMemo(() => {
-    return vapeProfile.totalPuffsPerPod > 0 ? vapeProfile.costPerPodOrBottle / vapeProfile.totalPuffsPerPod : 0.004;
+    return vapeProfile.totalPuffsPerPod > 0 ? vapeProfile.costPerPodOrBottle / vapeProfile.totalPuffsPerPod : 0.36;
   }, [vapeProfile]);
 
   const todayPuffs = useMemo(() => {
@@ -324,7 +371,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return Math.max(0, Math.floor((nowTimestamp - latestPuff) / 1000));
   }, [puffs, nowTimestamp]);
 
-  // Pod calculations
+  // Pod & Refill Cost Metrics in INR (₹)
   const podPuffsRemaining = Math.max(0, vapeProfile.totalPuffsPerPod - podPuffsUsed);
   const podPercentRemaining = Math.max(
     0,
@@ -336,44 +383,53 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return Math.max(0, Math.round(podPuffsRemaining / dailyPace));
   }, [podPuffsRemaining, todayCount, vapeProfile.dailyLimitGoal]);
 
+  const podSpentCost = Math.round(podPuffsUsed * costPerPuff * 10) / 10;
+  const monthlyEstimatedCost = Math.round((todayCount > 0 ? todayCount : (vapeProfile.dailyLimitGoal || 50)) * 30 * costPerPuff);
+  const totalRefillSpend = Math.round(
+    refillHistory.reduce((sum, r) => sum + (r.costInr || 0), 0) + podSpentCost
+  );
+
   // Session detection
   const { todaySessions, todaySessionsCount, todayVapingTimeSeconds } = useMemo(() => {
-    if (todayPuffs.length === 0) {
-      return { todaySessions: [], todaySessionsCount: 0, todayVapingTimeSeconds: 0 };
-    }
+    if (todayPuffs.length === 0) return { todaySessions: [], todaySessionsCount: 0, todayVapingTimeSeconds: 0 };
 
-    const sortedAsc = [...todayPuffs].sort((a, b) => a.timestamp - b.timestamp);
+    const sortedToday = [...todayPuffs].sort((a, b) => a.timestamp - b.timestamp);
     const sessions: Session[] = [];
-    let currentSession: Session | null = null;
-    const SESSION_THRESHOLD_MS = 3 * 60 * 1000;
+    let currentSession: PuffLog[] = [];
+    const SESSION_GAP_MS = 5 * 60 * 1000;
 
-    sortedAsc.forEach((p) => {
-      if (!currentSession) {
-        currentSession = {
-          id: `session-${p.timestamp}`,
-          startTime: p.timestamp,
-          endTime: p.timestamp,
-          puffCount: 1,
-        };
-      } else if (p.timestamp - currentSession.endTime <= SESSION_THRESHOLD_MS) {
-        currentSession.endTime = p.timestamp;
-        currentSession.puffCount += 1;
+    sortedToday.forEach((puff) => {
+      if (currentSession.length === 0) {
+        currentSession.push(puff);
       } else {
-        sessions.push(currentSession);
-        currentSession = {
-          id: `session-${p.timestamp}`,
-          startTime: p.timestamp,
-          endTime: p.timestamp,
-          puffCount: 1,
-        };
+        const lastPuff = currentSession[currentSession.length - 1];
+        if (puff.timestamp - lastPuff.timestamp <= SESSION_GAP_MS) {
+          currentSession.push(puff);
+        } else {
+          sessions.push({
+            id: `session-${currentSession[0].timestamp}`,
+            startTime: currentSession[0].timestamp,
+            endTime: lastPuff.timestamp,
+            puffCount: currentSession.length,
+          });
+          currentSession = [puff];
+        }
       }
     });
 
-    if (currentSession) sessions.push(currentSession);
+    if (currentSession.length > 0) {
+      const lastPuff = currentSession[currentSession.length - 1];
+      sessions.push({
+        id: `session-${currentSession[0].timestamp}`,
+        startTime: currentSession[0].timestamp,
+        endTime: lastPuff.timestamp,
+        puffCount: currentSession.length,
+      });
+    }
 
     let totalDurationSeconds = 0;
     sessions.forEach((s) => {
-      const duration = Math.max(15, Math.floor((s.endTime - s.startTime) / 1000));
+      const duration = Math.max(30, Math.floor((s.endTime - s.startTime) / 1000) + s.puffCount * 4);
       totalDurationSeconds += duration;
     });
 
@@ -386,20 +442,55 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const activeSession = useMemo(() => {
     if (todaySessions.length === 0) return null;
-    const last = todaySessions[todaySessions.length - 1];
-    return nowTimestamp - last.endTime <= 3 * 60 * 1000 ? last : null;
+    const latest = todaySessions[todaySessions.length - 1];
+    if (nowTimestamp - latest.endTime < 5 * 60 * 1000) {
+      return latest;
+    }
+    return null;
   }, [todaySessions, nowTimestamp]);
 
   const averageBreakMinutes = useMemo(() => {
     if (todayPuffs.length < 2) return 0;
     const sorted = [...todayPuffs].sort((a, b) => a.timestamp - b.timestamp);
-    let totalGapMs = 0;
+    let totalGapsMs = 0;
     for (let i = 1; i < sorted.length; i++) {
-      totalGapMs += sorted[i].timestamp - sorted[i - 1].timestamp;
+      totalGapsMs += sorted[i].timestamp - sorted[i - 1].timestamp;
     }
-    return Math.round(totalGapMs / (sorted.length - 1) / 60000);
+    const avgMs = totalGapsMs / (sorted.length - 1);
+    return Math.round(avgMs / 60000);
   }, [todayPuffs]);
 
+  // Past 7 days summary
+  const past7Days: DaySummary[] = useMemo(() => {
+    const list: DaySummary[] = [];
+    const oneDay = 86400 * 1000;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    for (let i = 6; i >= 0; i--) {
+      const dayStartMs = todayStart.getTime() - i * oneDay;
+      const dayEndMs = dayStartMs + oneDay;
+      const dayDate = new Date(dayStartMs);
+      const dateStr = dayDate.toISOString().split('T')[0];
+
+      const dayPuffs = puffs.filter((p) => p.timestamp >= dayStartMs && p.timestamp < dayEndMs);
+      const count = dayPuffs.length;
+      const dayNicotine = Math.round(count * nicotinePerPuffMg * 10) / 10;
+      const dayCost = Math.round(count * costPerPuff * 100) / 100;
+
+      list.push({
+        dateStr,
+        puffCount: count,
+        limit: currentLimit,
+        nicotineMg: dayNicotine,
+        estimatedCost: dayCost,
+      });
+    }
+
+    return list;
+  }, [puffs, currentLimit, nicotinePerPuffMg, costPerPuff]);
+
+  // Hourly 24h distribution
   const hourlyDistribution = useMemo(() => {
     const hours = new Array(24).fill(0);
     todayPuffs.forEach((p) => {
@@ -409,34 +500,6 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return hours;
   }, [todayPuffs]);
 
-  const past7Days = useMemo(() => {
-    const days: DaySummary[] = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-
-      const startMs = new Date(d.setHours(0, 0, 0, 0)).getTime();
-      const endMs = new Date(d.setHours(23, 59, 59, 999)).getTime();
-
-      const dayPuffs = puffs.filter((p) => p.timestamp >= startMs && p.timestamp <= endMs);
-      const count = dayPuffs.length;
-
-      days.push({
-        dateStr,
-        puffCount: count,
-        limit: currentLimit,
-        nicotineMg: Math.round(count * nicotinePerPuffMg * 10) / 10,
-        estimatedCost: Math.round(count * costPerPuff * 100) / 100,
-      });
-    }
-
-    return days;
-  }, [puffs, currentLimit, nicotinePerPuffMg, costPerPuff]);
-
-  // Lung Health calculation based on pacing, session breaks & limit adherence
   // Lung Health calculation strictly mapped to user Daily Puffs categories:
   // 0: None, 1–25: Lower, 26–75: Moderate, 76–199: High, 200+: Very High
   const lungHealth: LungHealthInfo = useMemo(() => {
@@ -497,6 +560,22 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     soundManager.triggerHaptic(settings.hapticsEnabled, 25);
   };
 
+  const recordPodRefill = (costInr?: number) => {
+    const refillCost = costInr !== undefined && costInr > 0 ? costInr : vapeProfile.costPerPodOrBottle;
+    const newRecord: PodRefillRecord = {
+      id: `refill-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: Date.now(),
+      costInr: refillCost,
+      puffsLoggedOnPod: podPuffsUsed,
+      deviceName: vapeProfile.deviceName,
+      podCapacityMl: vapeProfile.podCapacityMl,
+    };
+    setRefillHistory((prev) => [newRecord, ...prev]);
+    setPodPuffsUsed(0);
+    soundManager.playClickSound(settings.soundEnabled);
+    soundManager.triggerHaptic(settings.hapticsEnabled, 30);
+  };
+
   const startLiveSession = () => {
     setIsLiveSessionRunning(true);
     setLiveSessionSeconds(0);
@@ -543,11 +622,10 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const undoLastPuff = () => {
     if (puffs.length === 0) return;
     const lastPuff = puffs[0];
-    soundManager.playClickSound(settings.soundEnabled);
-    soundManager.triggerHaptic(settings.hapticsEnabled, 15);
-
     setPuffs((prev) => prev.slice(1));
     setPodPuffsUsed((prev) => Math.max(0, prev - 1));
+    soundManager.playClickSound(settings.soundEnabled);
+    soundManager.triggerHaptic(settings.hapticsEnabled, 15);
 
     if (user && lastPuff) {
       syncDeletePuff(user.uid, lastPuff.id);
@@ -555,30 +633,31 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addMultiplePuffs = (count: number) => {
-    if (count <= 0) return;
-    soundManager.playPuffSound(settings.soundEnabled);
-    soundManager.triggerHaptic(settings.hapticsEnabled, [20, 40, 20]);
     const now = Date.now();
-    const newLogs: PuffLog[] = [];
+    const newBatch: PuffLog[] = [];
     for (let i = 0; i < count; i++) {
-      const p: PuffLog = {
-        id: `puff-multi-${now}-${i}`,
-        timestamp: now - i * 2000,
-      };
-      newLogs.push(p);
-      if (user) syncSavePuff(user.uid, p);
+      newBatch.push({
+        id: `batch-${now}-${i}`,
+        timestamp: now - (count - 1 - i) * 1000,
+        mood: 'Habit',
+      });
     }
-    setPuffs((prev) => [...newLogs, ...prev]);
+
+    setPuffs((prev) => [...newBatch, ...prev]);
     setPodPuffsUsed((prev) => prev + count);
-    if (isLiveSessionRunning) {
-      setLiveSessionPuffs((prev) => prev + count);
+    soundManager.playPuffSound(settings.soundEnabled);
+    soundManager.triggerHaptic(settings.hapticsEnabled, 35);
+
+    if (user) {
+      newBatch.forEach((p) => syncSavePuff(user.uid, p));
     }
   };
 
   const deletePuff = (id: string) => {
-    soundManager.playClickSound(settings.soundEnabled);
     setPuffs((prev) => prev.filter((p) => p.id !== id));
-    setPodPuffsUsed((prev) => Math.max(0, prev - 1));
+    soundManager.playClickSound(settings.soundEnabled);
+    soundManager.triggerHaptic(settings.hapticsEnabled, 15);
+
     if (user) {
       syncDeletePuff(user.uid, id);
     }
@@ -598,27 +677,28 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateVapeProfile = (updates: Partial<VapeProfile>) => {
-    const updated = { ...vapeProfile, ...updates };
-    setVapeProfile(updated);
-    if (user) {
-      syncSaveUserProfile(user.uid, updated, settings);
-    }
+    setVapeProfile((prev) => {
+      const next = { ...prev, ...updates, currency: '₹' };
+      if (user) syncSaveUserProfile(user.uid, next, settings);
+      return next;
+    });
+    soundManager.playClickSound(settings.soundEnabled);
   };
 
   const updateSettings = (updates: Partial<AppSettings>) => {
-    const updated = { ...settings, ...updates };
-    setSettings(updated);
-    if (user) {
-      syncSaveUserProfile(user.uid, vapeProfile, updated);
-    }
+    setSettings((prev) => {
+      const next = { ...prev, ...updates };
+      if (user) syncSaveUserProfile(user.uid, vapeProfile, next);
+      return next;
+    });
+    soundManager.playClickSound(settings.soundEnabled);
   };
 
   const signInWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (e) {
-      console.error('Google Sign-In Error', e);
-      alert('Sign-In failed. Please check your browser popup settings or Firebase credentials.');
+      console.error('Google Sign In Error', e);
     }
   };
 
@@ -627,23 +707,35 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await signOut(auth);
       setUser(null);
     } catch (e) {
-      console.error('Sign Out error', e);
+      console.error('Sign Out Error', e);
     }
   };
 
   const resetAllData = () => {
-    localStorage.removeItem(STORAGE_KEY_PUFFS);
-    localStorage.removeItem(STORAGE_KEY_PROFILE);
-    localStorage.removeItem(STORAGE_KEY_SETTINGS);
-    localStorage.removeItem('apple_pod_puffs_used_v1');
     setPuffs([]);
     setPodPuffsUsed(0);
+    setRefillHistory([]);
     setVapeProfile(DEFAULT_PROFILE);
-    setSettings(DEFAULT_SETTINGS);
+    localStorage.removeItem(STORAGE_KEY_PUFFS);
+    localStorage.removeItem(STORAGE_KEY_PROFILE);
+    localStorage.removeItem(STORAGE_KEY_POD_PUFFS);
+    localStorage.removeItem(STORAGE_KEY_REFILLS);
+    soundManager.playClickSound(settings.soundEnabled);
   };
 
   const exportJSON = () => {
-    return JSON.stringify({ puffs, vapeProfile, settings, podPuffsUsed, exportDate: new Date().toISOString() }, null, 2);
+    return JSON.stringify(
+      {
+        puffs,
+        vapeProfile,
+        settings,
+        podPuffsUsed,
+        refillHistory,
+        exportDate: new Date().toISOString()
+      },
+      null,
+      2
+    );
   };
 
   const importJSON = (jsonStr: string): boolean => {
@@ -653,6 +745,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (parsed.vapeProfile) setVapeProfile(parsed.vapeProfile);
       if (parsed.settings) setSettings(parsed.settings);
       if (typeof parsed.podPuffsUsed === 'number') setPodPuffsUsed(parsed.podPuffsUsed);
+      if (Array.isArray(parsed.refillHistory)) setRefillHistory(parsed.refillHistory);
       return true;
     } catch (e) {
       console.error('Import error', e);
@@ -688,6 +781,11 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         podPercentRemaining,
         estimatedDaysUntilRefill,
         resetCurrentPod,
+        refillHistory,
+        recordPodRefill,
+        podSpentCost,
+        monthlyEstimatedCost,
+        totalRefillSpend,
         lungHealth,
         isLiveSessionRunning,
         liveSessionSeconds,

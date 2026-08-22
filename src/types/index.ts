@@ -22,8 +22,18 @@ export interface VapeProfile {
   nicotineMgPerMl: number; // e.g. 50mg/ml for 5% salt nic
   podCapacityMl: number; // e.g. 2ml, 10ml, 13ml
   totalPuffsPerPod: number; // e.g. 5000 puffs
-  costPerPodOrBottle: number; // e.g. $20.00
+  costPerPodOrBottle: number; // In INR (₹), e.g. ₹1800
   dailyLimitGoal: number; // e.g. 60 puffs/day
+  currency?: string; // '₹'
+}
+
+export interface PodRefillRecord {
+  id: string;
+  timestamp: number;
+  costInr: number;
+  puffsLoggedOnPod: number;
+  deviceName: string;
+  podCapacityMl: number;
 }
 
 export type AppTheme = 'apple-dark' | 'apple-light' | 'midnight-blue' | 'emerald-ios';
@@ -61,4 +71,3 @@ export interface DaySummary {
   nicotineMg: number;
   estimatedCost: number;
 }
-

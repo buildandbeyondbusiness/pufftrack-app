@@ -5,7 +5,11 @@ import {
   Sparkles,
   Droplets,
   Layers,
-  AlertCircle
+  IndianRupee,
+  Calendar,
+  History,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import type { VapeDeviceType } from '../types';
 
@@ -17,16 +21,26 @@ export const ModelsView: React.FC = () => {
     podPuffsRemaining,
     podPercentRemaining,
     estimatedDaysUntilRefill,
-    resetCurrentPod,
+    refillHistory,
+    recordPodRefill,
+    costPerPuff,
+    podSpentCost,
+    monthlyEstimatedCost,
+    totalRefillSpend,
     todayCount,
     addPuff,
   } = usePuff();
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState(vapeProfile);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showRefillModal, setShowRefillModal] = useState(false);
+  const [customRefillCost, setCustomRefillCost] = useState<number>(vapeProfile.costPerPodOrBottle);
   const [isPulling, setIsPulling] = useState(false);
   const [wavePhase, setWavePhase] = useState(0);
+
+  useEffect(() => {
+    setCustomRefillCost(vapeProfile.costPerPodOrBottle);
+  }, [vapeProfile.costPerPodOrBottle]);
 
   // Continuous gentle liquid wave oscillation
   useEffect(() => {
@@ -53,6 +67,12 @@ export const ModelsView: React.FC = () => {
     setTimeout(() => setIsPulling(false), 900);
   };
 
+  const handleConfirmRefill = (e: React.FormEvent) => {
+    e.preventDefault();
+    recordPodRefill(customRefillCost);
+    setShowRefillModal(false);
+  };
+
   const isLowLiquid = podPercentRemaining < 20;
 
   // Generate dynamic fluid surface SVG path
@@ -72,7 +92,7 @@ export const ModelsView: React.FC = () => {
             Device Model
           </h1>
           <p className="text-xs text-[var(--text-muted)] font-medium">
-            Active Vape Hardware & Estimated Refill
+            Active Vape Hardware & Refill Cost System
           </p>
         </div>
 
@@ -245,9 +265,9 @@ export const ModelsView: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setShowResetConfirm(true)}
-              title="Replace Pod / Reset Counter"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[var(--text-main)] text-xs font-bold transition-all cursor-pointer active:scale-95"
+              onClick={() => setShowRefillModal(true)}
+              title="Log Pod Refill / Replacement"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-md"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               <span>New Pod</span>
@@ -256,29 +276,160 @@ export const ModelsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Reset Pod Confirmation Prompt */}
-      {showResetConfirm && (
-        <div className="glass-panel p-4 border border-amber-500/30 bg-amber-500/10 flex items-center justify-between animate-in fade-in duration-200">
-          <div className="flex items-center gap-2 text-xs text-amber-200 font-semibold">
-            <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
-            <span>Installed a fresh pod/disposable? Reset counter to 100%?</span>
+      {/* 💰 Pod Refill Financials & INR (₹) Cost Dashboard */}
+      <div className="glass-panel p-4 flex flex-col gap-3">
+        <h3 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider flex items-center gap-1.5">
+          <IndianRupee className="h-3.5 w-3.5 text-emerald-400" />
+          Pod Refill & Expenditure System (INR ₹)
+        </h3>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Cost Per Single Hit</div>
+            <div className="text-base font-black text-emerald-400 mt-0.5">
+              ₹{costPerPuff.toFixed(2)} <span className="text-[10px] text-[var(--text-muted)] font-normal">/ puff</span>
+            </div>
+            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+              (₹{(costPerPuff * 100).toFixed(1)} per 100 hits)
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowResetConfirm(false)}
-              className="px-2.5 py-1 rounded-lg text-xs font-medium text-zinc-300 hover:text-white cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                resetCurrentPod();
-                setShowResetConfirm(false);
-              }}
-              className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-500 text-black shadow-md cursor-pointer hover:bg-amber-400"
-            >
-              Confirm
-            </button>
+
+          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Current Pod Spent</div>
+            <div className="text-base font-black text-[var(--text-main)] mt-0.5">
+              ₹{podSpentCost} <span className="text-[10px] text-zinc-400 font-normal">/ ₹{vapeProfile.costPerPodOrBottle}</span>
+            </div>
+            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+              ({podPuffsUsed} hits used)
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Est. Monthly Budget</div>
+            <div className="text-base font-black text-indigo-400 mt-0.5">
+              ₹{monthlyEstimatedCost} <span className="text-[10px] text-[var(--text-muted)] font-normal">/ mo</span>
+            </div>
+            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+              Based on {todayCount > 0 ? todayCount : vapeProfile.dailyLimitGoal} hits/day
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
+            <div className="text-[10px] text-[var(--text-muted)] font-medium">Lifetime Refills Spend</div>
+            <div className="text-base font-black text-amber-400 mt-0.5">
+              ₹{totalRefillSpend}
+            </div>
+            <div className="text-[9px] text-[var(--text-muted)] mt-0.5">
+              {refillHistory.length + 1} total pods logged
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 📜 Pod Refill History Timeline */}
+      {refillHistory.length > 0 && (
+        <div className="glass-panel p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5 text-[var(--accent-purple)]" />
+              Pod Replacement History
+            </h3>
+            <span className="text-[10px] text-zinc-400 font-semibold">{refillHistory.length} refills recorded</span>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {refillHistory.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-[var(--border-subtle)]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-[var(--text-main)]">{item.deviceName}</span>
+                    <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(item.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })} • {item.puffsLoggedOnPod} puffs
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs font-black text-emerald-400">
+                  ₹{item.costInr}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Log Pod Refill Modal */}
+      {showRefillModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-extrabold text-[var(--text-main)] flex items-center gap-2">
+                <RotateCcw className="h-5 w-5 text-emerald-400" />
+                <span>Log New Pod / Refill</span>
+              </h3>
+              <button
+                onClick={() => setShowRefillModal(false)}
+                className="p-1 rounded-full text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-[var(--text-muted)]">
+              This will record your pod refill in INR (₹) and reset the liquid gauge and puff counter to 100% full.
+            </p>
+
+            <form onSubmit={handleConfirmRefill} className="flex flex-col gap-3">
+              <div>
+                <label className="text-[11px] font-semibold text-[var(--text-muted)] mb-1 block">
+                  Refill Cost Paid (₹ INR):
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-xs font-bold text-emerald-400">₹</span>
+                  <input
+                    type="number"
+                    step="10"
+                    required
+                    value={customRefillCost}
+                    onChange={(e) => setCustomRefillCost(Number(e.target.value))}
+                    className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] pl-7 pr-3 py-2 text-xs font-bold text-[var(--text-main)] outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/5 p-3 border border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)] flex flex-col gap-1">
+                <div className="flex justify-between">
+                  <span>Puffs logged on old pod:</span>
+                  <strong className="text-[var(--text-main)]">{podPuffsUsed} hits</strong>
+                </div>
+                <div className="flex justify-between">
+                  <span>Device:</span>
+                  <strong className="text-[var(--text-main)]">{vapeProfile.deviceName} ({vapeProfile.podCapacityMl} mL)</strong>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRefillModal(false)}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg cursor-pointer"
+                >
+                  Confirm & Reset
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -353,13 +504,13 @@ export const ModelsView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-[var(--text-muted)] mb-1 block">Cost ($)</label>
+                <label className="text-[11px] font-semibold text-[var(--text-muted)] mb-1 block">Pod Cost (₹)</label>
                 <input
                   type="number"
-                  step="0.5"
+                  step="10"
                   value={tempProfile.costPerPodOrBottle}
                   onChange={(e) => setTempProfile({ ...tempProfile, costPerPodOrBottle: Number(e.target.value) })}
-                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none"
+                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none font-bold text-emerald-400"
                 />
               </div>
             </div>
@@ -409,7 +560,7 @@ export const ModelsView: React.FC = () => {
             <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
               <div className="text-[10px] text-[var(--text-muted)] font-medium">Pod Replacement Cost</div>
               <div className="text-base font-bold text-emerald-400 mt-0.5">
-                ${vapeProfile.costPerPodOrBottle.toFixed(2)}
+                ₹{vapeProfile.costPerPodOrBottle}
               </div>
             </div>
 
@@ -452,7 +603,7 @@ export const ModelsView: React.FC = () => {
 
           <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] pt-1">
             <span>Today logged: <strong className="text-[var(--text-main)]">{todayCount} hits</strong></span>
-            <span>Est. pod cost/puff: <strong className="text-emerald-400">${(vapeProfile.costPerPodOrBottle / Math.max(1, vapeProfile.totalPuffsPerPod)).toFixed(3)}</strong></span>
+            <span>Est. pod cost/puff: <strong className="text-emerald-400">₹{costPerPuff.toFixed(2)}</strong></span>
           </div>
         </div>
       </div>

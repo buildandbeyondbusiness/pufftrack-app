@@ -473,7 +473,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
             <div className="text-[10px] text-[var(--text-muted)] font-medium">Daily Cost Spent</div>
-            <div className="text-lg font-bold text-[var(--text-main)] mt-0.5">${todayCost}</div>
+            <div className="text-lg font-bold text-[var(--text-main)] mt-0.5">₹{todayCost}</div>
           </div>
           <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
             <div className="text-[10px] text-[var(--text-muted)] font-medium">Avg Hit Interval</div>
