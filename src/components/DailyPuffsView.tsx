@@ -53,6 +53,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
   const [showNicSheet, setShowNicSheet] = useState<boolean>(false);
   const [showSessionModal, setShowSessionModal] = useState<boolean>(false);
   const [isPuffing, setIsPuffing] = useState<boolean>(false);
+  const [isAuraBlooming, setIsAuraBlooming] = useState<boolean>(false);
 
   // Format Time Since Last Puff
   const formatTimeSinceLastHit = (totalSeconds: number) => {
@@ -74,18 +75,29 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
 
   const isOverLimit = todayCount >= currentLimit;
 
+  // Orchestrated Apple-esque Puff Sequence
   const handlePuffClick = (e: React.MouseEvent) => {
+    // Stage 1: Inhale / Ignition Compression
     setIsPuffing(true);
-    setTimeout(() => setIsPuffing(false), 400);
+    setIsAuraBlooming(true);
 
+    // Stage 2: Volumetric Vapor Plume Eruption
     onTriggerVapor(e);
     addPuff(selectedMood || undefined);
+
+    // Stage 3: Spring Release
+    setTimeout(() => setIsPuffing(false), 250);
+    setTimeout(() => setIsAuraBlooming(false), 1200);
   };
 
   const handleQuickAdd = (count: number) => {
+    setIsPuffing(true);
+    setIsAuraBlooming(true);
     addMultiplePuffs(count);
     onTriggerVapor();
     setShowQuickHitFlyout(false);
+    setTimeout(() => setIsPuffing(false), 250);
+    setTimeout(() => setIsAuraBlooming(false), 1200);
   };
 
   // Sunburst / Radiant notch ticks generation for the SVG radial meter
@@ -136,7 +148,9 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
       </div>
 
       {/* Apple Fitness 3 Nested Activity Rings Summary */}
-      <div className="glass-panel p-4 flex items-center justify-between">
+      <div className={`glass-panel p-4 flex items-center justify-between transition-all duration-500 ${
+        isAuraBlooming ? 'border-[var(--accent-purple)] shadow-[0_0_20px_var(--accent-purple-glow)]' : ''
+      }`}>
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent-pink)]" />
@@ -169,7 +183,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
               strokeDashoffset={(2 * Math.PI * 34) * (1 - Math.min(1, todayCount / Math.max(1, currentLimit)))}
               strokeLinecap="round"
               fill="transparent"
-              className="transition-all duration-500"
+              className="transition-all duration-700 ease-out"
             />
 
             {/* Middle Green (Nicotine) */}
@@ -184,7 +198,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
               strokeDashoffset={(2 * Math.PI * 25) * (1 - Math.min(1, todayNicotineMg / 25))}
               strokeLinecap="round"
               fill="transparent"
-              className="transition-all duration-500"
+              className="transition-all duration-700 ease-out"
             />
 
             {/* Inner Cyan (Sessions) */}
@@ -199,23 +213,31 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
               strokeDashoffset={(2 * Math.PI * 16) * (1 - Math.min(1, todaySessionsCount / 8))}
               strokeLinecap="round"
               fill="transparent"
-              className="transition-all duration-500"
+              className="transition-all duration-700 ease-out"
             />
           </svg>
         </div>
       </div>
 
-      {/* Main Radiant Sunburst Gauge (Matching Sketch "Puffstoday 100/125 Last Hit") */}
-      <div className="glass-panel p-6 flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Glow backdrop */}
+      {/* Main Radiant Sunburst Gauge with Animated Puff Sequence */}
+      <div className={`glass-panel p-6 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500 ${
+        isAuraBlooming ? 'ring-2 ring-cyan-400/40 shadow-2xl shadow-cyan-500/20' : ''
+      }`}>
+        {/* Dynamic Atmospheric Light Bloom Aura */}
         <div
-          className={`absolute h-52 w-52 rounded-full blur-3xl opacity-25 pointer-events-none transition-all duration-500 ${
-            isOverLimit ? 'bg-red-600 opacity-40' : 'bg-[var(--accent-purple)]'
+          className={`absolute h-56 w-56 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
+            isAuraBlooming
+              ? 'bg-cyan-400 opacity-60 scale-125'
+              : isOverLimit
+              ? 'bg-red-600 opacity-40'
+              : 'bg-[var(--accent-purple)] opacity-25'
           }`}
         />
 
-        <div className="relative flex items-center justify-center h-64 w-64">
-          {/* Sunburst radiant rays SVG */}
+        <div className={`relative flex items-center justify-center h-64 w-64 transition-transform duration-300 ${
+          isPuffing ? 'scale-95' : 'scale-100'
+        }`}>
+          {/* Sunburst radiant rays SVG with firing animation */}
           <svg className="h-full w-full transform rotate-135" viewBox="0 0 200 200">
             {Array.from({ length: TOTAL_TICKS }).map((_, index) => {
               const angle = (index / (TOTAL_TICKS - 1)) * 270;
@@ -223,7 +245,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
               const isActive = index < activeTicksCount;
 
               const innerR = 72;
-              const outerR = 88;
+              const outerR = isActive && isAuraBlooming ? 92 : 88;
               const cx = 100;
               const cy = 100;
 
@@ -243,10 +265,12 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
                     isActive
                       ? isOverLimit
                         ? '#ff453a'
+                        : isAuraBlooming
+                        ? '#38bdf8'
                         : 'var(--accent-purple)'
                       : 'rgba(255,255,255,0.12)'
                   }
-                  strokeWidth={isActive ? '3.5' : '1.8'}
+                  strokeWidth={isActive ? (isAuraBlooming ? '4.5' : '3.5') : '1.8'}
                   strokeLinecap="round"
                   className="transition-all duration-300"
                 />
@@ -262,8 +286,12 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
 
             <div className="my-1 flex items-baseline justify-center gap-1">
               <span
-                className={`text-5xl font-black tracking-tight ${
-                  isOverLimit ? 'text-red-500 animate-pulse' : 'text-[var(--text-main)]'
+                className={`text-5xl font-black tracking-tight transition-all duration-300 ${
+                  isAuraBlooming
+                    ? 'text-cyan-300 scale-110 drop-shadow-[0_0_15px_#38bdf8]'
+                    : isOverLimit
+                    ? 'text-red-500 animate-pulse'
+                    : 'text-[var(--text-main)]'
                 }`}
               >
                 {todayCount}
@@ -280,7 +308,11 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
                 <span>Over Limit</span>
               </div>
             ) : (
-              <div className="rounded-full bg-[var(--bg-accent-pill)] px-3 py-1 text-xs font-semibold text-[var(--text-muted)] border border-[var(--border-subtle)] flex items-center gap-1.5 shadow-sm">
+              <div className={`rounded-full px-3 py-1 text-xs font-semibold border transition-all duration-500 flex items-center gap-1.5 shadow-sm ${
+                isAuraBlooming
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 scale-105'
+                  : 'bg-[var(--bg-accent-pill)] border-[var(--border-subtle)] text-[var(--text-muted)]'
+              }`}>
                 <Clock className="h-3 w-3 text-[var(--accent-purple)]" />
                 <span>Last Hit:</span>
                 <span className="text-[var(--text-main)] font-bold">
@@ -340,18 +372,20 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
         {/* Primary '+' Puff Button (Center Round/Pill Button from Sketch) */}
         <button
           onClick={handlePuffClick}
-          className={`flex-[1.8] flex items-center justify-center gap-2 py-4 rounded-3xl font-black text-xl shadow-2xl transition-all duration-200 active:scale-95 cursor-pointer ${
-            isPuffing ? 'scale-95 ring-4 ring-[var(--accent-purple-glow)]' : ''
+          className={`flex-[1.8] flex items-center justify-center gap-2 py-4 rounded-3xl font-black text-xl shadow-2xl transition-all duration-300 active:scale-90 cursor-pointer ${
+            isPuffing ? 'scale-90 ring-4 ring-cyan-400' : ''
           }`}
           style={{
             background: isOverLimit
               ? 'linear-gradient(135deg, #ff453a 0%, #ff3b30 100%)'
               : 'linear-gradient(135deg, #0a84ff 0%, #007aff 100%)',
-            boxShadow: '0 12px 35px -5px rgba(10, 132, 255, 0.5)',
+            boxShadow: isAuraBlooming
+              ? '0 0 35px rgba(56, 189, 248, 0.7)'
+              : '0 12px 35px -5px rgba(10, 132, 255, 0.5)',
             color: '#ffffff',
           }}
         >
-          <Plus className="h-7 w-7 stroke-[3.5]" />
+          <Plus className={`h-7 w-7 stroke-[3.5] transition-transform duration-300 ${isPuffing ? 'rotate-90 scale-125' : ''}`} />
           <span>PUFF</span>
         </button>
 
