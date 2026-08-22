@@ -108,10 +108,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   };
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 transition-opacity duration-150 p-0 sm:p-4"
-    >
+    <>
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 transition-opacity duration-150 p-0 sm:p-4"
+      >
       <div
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-lg max-h-[88vh] overflow-y-auto rounded-t-[32px] sm:rounded-[32px] bg-[#12131a] border border-white/15 p-6 shadow-2xl scrollbar-none flex flex-col gap-5 transform-gpu will-change-transform"
@@ -226,9 +227,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             Setup
           </button>
         </div>
-
-        {/* Back Tap Setup Guide Modal */}
-        <BackTapGuideModal isOpen={showBackTapGuide} onClose={() => setShowBackTapGuide(false)} />
 
         {/* PWA Mobile Install Banner */}
         {!isPwaInstalled && (
@@ -380,5 +378,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         </div>
       </div>
     </div>
+
+    <BackTapGuideModal
+      isOpen={showBackTapGuide}
+      onClose={() => setShowBackTapGuide(false)}
+    />
+  </>
   );
 };

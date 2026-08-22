@@ -299,23 +299,15 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setUser(uProfile);
         setIsCloudSyncing(true);
-
         subscribeUserPuffs(firebaseUser.uid, (cloudPuffs: PuffLog[]) => {
-          setPuffs((localPuffs) => {
-            const combined = [...cloudPuffs];
-            localPuffs.forEach((lp) => {
-              if (!combined.some((cp) => cp.id === lp.id)) {
-                combined.push(lp);
-                syncSavePuff(firebaseUser.uid, lp);
-              }
-            });
-            combined.sort((a, b) => b.timestamp - a.timestamp);
-            return combined;
-          });
           setIsCloudSyncing(false);
+          if (cloudPuffs && cloudPuffs.length > 0) {
+            setPuffs(cloudPuffs);
+          }
         });
       } else {
         setUser(null);
+        setIsCloudSyncing(false);
       }
     });
 
