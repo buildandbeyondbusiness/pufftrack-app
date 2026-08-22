@@ -1,8 +1,13 @@
 import React from 'react';
-import { Flame, Clock, BarChart3, Smartphone } from 'lucide-react';
 import { soundManager } from '../utils/audio';
 import { usePuff } from '../context/PuffContext';
 import type { NavTabType } from '../types';
+import {
+  HomeAuraIcon,
+  VapeModelIcon,
+  AnalyticsWaveIcon,
+  ChronosHistoryIcon
+} from './icons/AppIcons';
 
 export type TabType = NavTabType;
 
@@ -15,10 +20,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
   const { settings } = usePuff();
 
   const tabs: { id: TabType; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'home', label: 'Home', icon: Flame },
-    { id: 'models', label: 'Models', icon: Smartphone },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'history', label: 'History', icon: Clock },
+    { id: 'home', label: 'Home', icon: HomeAuraIcon },
+    { id: 'models', label: 'Models', icon: VapeModelIcon },
+    { id: 'analytics', label: 'Analytics', icon: AnalyticsWaveIcon },
+    { id: 'history', label: 'History', icon: ChronosHistoryIcon },
   ];
 
   const handleTabClick = (id: TabType) => {
@@ -61,8 +66,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
                 />
               )}
               <Icon
-                className={`relative z-10 h-5 w-5 transition-transform duration-300 ${
-                  isActive ? 'scale-110 drop-shadow-[0_0_8px_var(--accent-purple-glow)]' : ''
+                className={`relative z-10 h-6 w-6 transition-transform duration-300 ${
+                  isActive ? 'scale-110 drop-shadow-[0_0_10px_var(--accent-purple-glow)]' : 'opacity-70 hover:opacity-100'
                 }`}
               />
               <span

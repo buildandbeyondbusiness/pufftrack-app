@@ -3,18 +3,19 @@ import { usePuff } from '../context/PuffContext';
 import {
   Plus,
   Minus,
-  Zap,
   Clock,
   User,
   Activity,
-  Droplet,
-  Timer,
   ChevronRight,
   X,
-  Sparkles,
   AlertTriangle
 } from 'lucide-react';
 import type { MoodTag } from '../types';
+import {
+  NicotineMoleculeIcon,
+  SessionTimerIcon,
+  SparkHitIcon
+} from './icons/AppIcons';
 
 interface DailyPuffsViewProps {
   onTriggerVapor: (e?: React.MouseEvent) => void;
@@ -324,13 +325,13 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
 
       {/* Control Hub (Matching Sketch: Left Quick Hit Flyout, Center '+', Left 'Nic', Right 'Session') */}
       <div className="flex items-center gap-3 w-full">
-        {/* Nic Button (Left Pill from Sketch) */}
+        {/* Nic Button (Left Pill with Custom Molecular Hex Icon) */}
         <button
           onClick={() => setShowNicSheet(true)}
-          className="flex-1 flex flex-col items-center justify-center py-3.5 rounded-2xl glass-panel text-[var(--text-main)] hover:border-[var(--accent-purple)] active:scale-95 transition-all cursor-pointer shadow-md"
+          className="flex-1 flex flex-col items-center justify-center py-3 rounded-2xl glass-panel text-[var(--text-main)] hover:border-[var(--accent-purple)] active:scale-95 transition-all cursor-pointer shadow-md group"
         >
           <div className="flex items-center gap-1 text-xs font-extrabold text-[var(--accent-purple)]">
-            <Droplet className="h-3.5 w-3.5" />
+            <NicotineMoleculeIcon className="h-4 w-4 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" />
             <span>Nic</span>
           </div>
           <span className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">{todayNicotineMg} mg</span>
@@ -354,15 +355,15 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
           <span>PUFF</span>
         </button>
 
-        {/* Session Button (Right Pill from Sketch) */}
+        {/* Session Button (Right Pill with Custom Chronometer Icon) */}
         <button
           onClick={() => setShowSessionModal(true)}
-          className={`flex-1 flex flex-col items-center justify-center py-3.5 rounded-2xl glass-panel text-[var(--text-main)] hover:border-emerald-500 active:scale-95 transition-all cursor-pointer shadow-md ${
+          className={`flex-1 flex flex-col items-center justify-center py-3 rounded-2xl glass-panel text-[var(--text-main)] hover:border-emerald-500 active:scale-95 transition-all cursor-pointer shadow-md ${
             isLiveSessionRunning ? 'ring-2 ring-emerald-400 bg-emerald-500/10' : ''
           }`}
         >
           <div className="flex items-center gap-1 text-xs font-extrabold text-emerald-400">
-            <Timer className="h-3.5 w-3.5" />
+            <SessionTimerIcon className="h-4 w-4 drop-shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
             <span>Session</span>
           </div>
           <span className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">
@@ -371,13 +372,13 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
         </button>
       </div>
 
-      {/* Undo & Quick Hit Flyout Drawer Toggle (Left Side Quick Hit Menu from Sketch) */}
+      {/* Undo & Quick Hit Flyout Drawer Toggle (Left Side Quick Hit Menu with Spark Icon) */}
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={() => setShowQuickHitFlyout(!showQuickHitFlyout)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-2xl glass-panel text-xs font-bold text-[var(--text-main)] hover:border-[var(--accent-purple)] transition-all cursor-pointer active:scale-95 shadow-md"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-2xl glass-panel text-xs font-bold text-[var(--text-main)] hover:border-amber-400 transition-all cursor-pointer active:scale-95 shadow-md"
         >
-          <Sparkles className="h-3.5 w-3.5 text-[var(--accent-purple)]" />
+          <SparkHitIcon className="h-4 w-4 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
           <span>Quick Hit Menu</span>
           <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-200 ${showQuickHitFlyout ? 'rotate-90' : ''}`} />
         </button>
@@ -394,10 +395,10 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
 
       {/* Slide-out Quick Hit Drawer (Matching Sketch Quick Hit: +1, +3, +5, +10) */}
       {showQuickHitFlyout && (
-        <div className="glass-panel p-4 border border-[var(--accent-purple-glow)] bg-[var(--bg-card)] rounded-2xl flex flex-col gap-3 animate-in slide-in-from-left-4 duration-200">
+        <div className="glass-panel p-4 border border-amber-500/40 bg-[var(--bg-card)] rounded-2xl flex flex-col gap-3 animate-in slide-in-from-left-4 duration-200">
           <div className="flex items-center justify-between text-xs font-extrabold text-[var(--text-main)]">
-            <span className="flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-[var(--accent-purple)]" />
+            <span className="flex items-center gap-1.5 text-amber-300">
+              <SparkHitIcon className="h-4 w-4" />
               Quick Hit Multi-Puff Presets
             </span>
             <button
@@ -413,7 +414,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
               <button
                 key={num}
                 onClick={() => handleQuickAdd(num)}
-                className="py-3 rounded-xl bg-white/5 hover:bg-[var(--accent-purple)] hover:text-white border border-[var(--border-subtle)] text-xs font-black text-[var(--text-main)] transition-all cursor-pointer active:scale-95 shadow-md flex flex-col items-center justify-center gap-0.5"
+                className="py-3 rounded-xl bg-white/5 hover:bg-amber-500 hover:text-black border border-[var(--border-subtle)] text-xs font-black text-[var(--text-main)] transition-all cursor-pointer active:scale-95 shadow-md flex flex-col items-center justify-center gap-0.5"
               >
                 <span className="text-base font-black">+{num}</span>
                 <span className="text-[9px] opacity-75 font-normal">hits</span>
@@ -455,7 +456,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
           <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-extrabold text-[var(--text-main)] flex items-center gap-2">
-                <Droplet className="h-5 w-5 text-[var(--accent-purple)]" />
+                <NicotineMoleculeIcon className="h-6 w-6" />
                 <span>Nicotine Intake Rate</span>
               </h3>
               <button
@@ -503,7 +504,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, 
           <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-extrabold text-[var(--text-main)] flex items-center gap-2">
-                <Timer className="h-5 w-5 text-emerald-400" />
+                <SessionTimerIcon className="h-6 w-6" />
                 <span>Timed Vape Session</span>
               </h3>
               <button

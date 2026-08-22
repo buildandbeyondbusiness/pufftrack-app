@@ -17,10 +17,10 @@ import {
   PieChart as PieIcon,
   ChevronLeft,
   ChevronRight,
-  Wind,
   TrendingUp,
   Activity
 } from 'lucide-react';
+import { LungsIcon } from './icons/AppIcons';
 
 export const ProgressView: React.FC = () => {
   const {
@@ -101,7 +101,7 @@ export const ProgressView: React.FC = () => {
       case 'Optimal':
         return '#30d158';
       case 'Good':
-        return '#64d2ff';
+        return '#38bdf8';
       case 'Moderate':
         return '#ffd60a';
       case 'Strained':
@@ -203,14 +203,14 @@ export const ProgressView: React.FC = () => {
 
       {/* Dual Summary Cards (Matching Sketch: Left 'LUNGHEALTH Moderate' + Right 'Weekly Total 260') */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Left Card: LUNG HEALTH (From Sketch) */}
-        <div className="glass-panel p-4 flex flex-col justify-between relative overflow-hidden">
+        {/* Left Card: LUNG HEALTH (From Sketch with custom LungsIcon) */}
+        <div className="glass-panel p-4 flex flex-col justify-between relative overflow-hidden group">
           <div className="flex items-center justify-between">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-xl"
-              style={{ backgroundColor: `${getLungColor(lungHealth.status)}20`, color: getLungColor(lungHealth.status) }}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-105"
+              style={{ backgroundColor: `${getLungColor(lungHealth.status)}18` }}
             >
-              <Wind className="h-4 w-4" />
+              <LungsIcon className="h-7 w-7 drop-shadow-[0_0_10px_rgba(56,189,248,0.5)]" />
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/5 text-[var(--text-muted)]">
               {lungHealth.score}/100
@@ -236,8 +236,8 @@ export const ProgressView: React.FC = () => {
         {/* Right Card: Weekly Total (From Sketch) */}
         <div className="glass-panel p-4 flex flex-col justify-between relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
-              <Activity className="h-4 w-4" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-400">
+              <Activity className="h-5 w-5" />
             </div>
             <span className="text-[10px] font-bold text-emerald-400">7 Days</span>
           </div>
