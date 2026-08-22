@@ -9,9 +9,11 @@ import {
   Calendar,
   History,
   CheckCircle2,
-  X
+  X,
+  Box
 } from 'lucide-react';
 import type { VapeDeviceType } from '../types';
+import { Vape3DCanvas } from './Vape3DCanvas';
 
 export const ModelsView: React.FC = () => {
   const {
@@ -36,13 +38,14 @@ export const ModelsView: React.FC = () => {
   const [showRefillModal, setShowRefillModal] = useState(false);
   const [customRefillCost, setCustomRefillCost] = useState<number>(vapeProfile.costPerPodOrBottle);
   const [isPulling, setIsPulling] = useState(false);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [wavePhase, setWavePhase] = useState(0);
 
   useEffect(() => {
     setCustomRefillCost(vapeProfile.costPerPodOrBottle);
   }, [vapeProfile.costPerPodOrBottle]);
 
-  // Continuous gentle liquid wave oscillation
+  // Continuous gentle liquid wave oscillation for 2D mode fallback
   useEffect(() => {
     let animId: number;
     const updateWave = () => {
@@ -63,7 +66,7 @@ export const ModelsView: React.FC = () => {
 
   const handleDevicePull = () => {
     setIsPulling(true);
-    addPuff('Habit', 'Device Pull Test');
+    addPuff('Habit', '3D Device Pull Test');
     setTimeout(() => setIsPulling(false), 900);
   };
 
@@ -75,9 +78,9 @@ export const ModelsView: React.FC = () => {
 
   const isLowLiquid = podPercentRemaining < 20;
 
-  // Generate dynamic fluid surface SVG path
+  // Generate dynamic fluid surface SVG path for 2D mode
   const waveHeight = isPulling ? 4.5 : 2.5;
-  const liquidY = 100 - podPercentRemaining; // 0 (full) to 100 (empty)
+  const liquidY = 100 - podPercentRemaining;
   const p1Y = liquidY + Math.sin(wavePhase) * waveHeight;
   const p2Y = liquidY + Math.sin(wavePhase + Math.PI * 0.5) * waveHeight;
   const p3Y = liquidY + Math.sin(wavePhase + Math.PI) * waveHeight;
@@ -92,28 +95,43 @@ export const ModelsView: React.FC = () => {
             Device Model
           </h1>
           <p className="text-xs text-[var(--text-muted)] font-medium">
-            Active Vape Hardware & Refill Cost System
+            3D Hardware Rendering & Refill System
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setTempProfile(vapeProfile);
-            setIsEditing(!isEditing);
-          }}
-          className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--bg-accent-pill)] text-[var(--accent-purple)] border border-[var(--border-subtle)] hover:bg-[var(--accent-purple-glow)] transition-all cursor-pointer"
-        >
-          {isEditing ? 'Cancel' : 'Edit Specs'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* 3D vs 2D Toggle */}
+          <button
+            onClick={() => setViewMode(viewMode === '3d' ? '2d' : '3d')}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+              viewMode === '3d'
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm'
+                : 'bg-white/5 text-[var(--text-muted)] border-[var(--border-subtle)]'
+            }`}
+          >
+            <Box className="h-3.5 w-3.5" />
+            <span>{viewMode === '3d' ? '3D Model' : '2D View'}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setTempProfile(vapeProfile);
+              setIsEditing(!isEditing);
+            }}
+            className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--bg-accent-pill)] text-[var(--accent-purple)] border border-[var(--border-subtle)] hover:bg-[var(--accent-purple-glow)] transition-all cursor-pointer"
+          >
+            {isEditing ? 'Cancel' : 'Edit Specs'}
+          </button>
+        </div>
       </div>
 
-      {/* Hero Vape Device Card with Interactive Animations */}
-      <div className="glass-panel p-6 flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Hero 3D / 2D Device Card */}
+      <div className="glass-panel p-5 flex flex-col items-center justify-center relative overflow-hidden">
         {/* Atmospheric Floating Ambient Glow */}
         <div
           className={`absolute h-56 w-56 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
             isPulling
-              ? 'bg-indigo-400 opacity-60 scale-125'
+              ? 'bg-cyan-400 opacity-60 scale-125'
               : isLowLiquid
               ? 'bg-amber-500 opacity-30'
               : 'bg-[var(--accent-purple)] opacity-30'
@@ -122,9 +140,9 @@ export const ModelsView: React.FC = () => {
 
         <div className="relative flex flex-col items-center w-full">
           {/* Device Brand Header */}
-          <div className="flex items-center justify-between w-full mb-3">
+          <div className="flex items-center justify-between w-full mb-1">
             <div className="flex items-center gap-2">
-              <span className={`h-2 w-2 rounded-full ${isPulling ? 'bg-indigo-400 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
+              <span className={`h-2 w-2 rounded-full ${isPulling ? 'bg-cyan-400 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
               <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
                 {vapeProfile.deviceType}
               </span>
@@ -134,108 +152,84 @@ export const ModelsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Interactive Tap-to-Vape Device Area */}
-          <div
-            onClick={handleDevicePull}
-            title="Tap device to take an animated test hit!"
-            className="relative my-2 flex flex-col items-center cursor-pointer group select-none transition-transform duration-200 active:scale-95"
-          >
-            {/* Animated Mouthpiece Vapor Wisps (Shown on pull) */}
-            <div className={`absolute -top-7 inset-x-0 flex justify-center pointer-events-none transition-opacity duration-300 ${isPulling ? 'opacity-100' : 'opacity-0'}`}>
-              <div className="relative flex items-center justify-center">
-                <span className="h-6 w-6 rounded-full bg-cyan-300 blur-md animate-ping opacity-80" />
-                <span className="absolute -top-2 h-4 w-4 rounded-full bg-white blur-sm animate-bounce opacity-90" />
+          {/* 3D GENERATED MODEL VIEWPORT */}
+          {viewMode === '3d' ? (
+            <div className="w-full flex flex-col items-center">
+              <Vape3DCanvas
+                deviceName={vapeProfile.deviceName}
+                podPercentRemaining={podPercentRemaining}
+                isFiring={isPulling}
+                onTapDevice={handleDevicePull}
+              />
+
+              <div className="flex items-center justify-between w-full mt-1 px-1">
+                <span className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium">
+                  <Sparkles className="h-3 w-3 text-cyan-400" />
+                  Drag 3D model to rotate • Tap to fire
+                </span>
+                <button
+                  onClick={handleDevicePull}
+                  className="px-3 py-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold transition-all cursor-pointer active:scale-95 flex items-center gap-1 shadow-sm"
+                >
+                  <span>{isPulling ? '🔥 Firing...' : '⚡️ Test 3D Puff'}</span>
+                </button>
               </div>
             </div>
+          ) : (
+            /* 2D Schematic Fallback View */
+            <div
+              onClick={handleDevicePull}
+              title="Tap device to take an animated test hit!"
+              className="relative my-2 flex flex-col items-center cursor-pointer group select-none transition-transform duration-200 active:scale-95"
+            >
+              {/* Mouthpiece */}
+              <div className={`w-12 h-6 rounded-t-xl border-t border-x border-white/20 transition-all duration-300 shadow-inner ${
+                isPulling ? 'bg-zinc-700 shadow-[0_0_12px_rgba(56,189,248,0.6)]' : 'bg-zinc-800'
+              }`} />
 
-            {/* Mouthpiece */}
-            <div className={`w-12 h-6 rounded-t-xl border-t border-x border-white/20 transition-all duration-300 shadow-inner ${
-              isPulling ? 'bg-zinc-700 shadow-[0_0_12px_rgba(56,189,248,0.6)]' : 'bg-zinc-800'
-            }`} />
-
-            {/* Device Body Chassis */}
-            <div className={`relative w-40 h-56 rounded-2xl bg-gradient-to-b from-zinc-800 via-zinc-900 to-black border transition-all duration-300 shadow-2xl overflow-hidden p-3.5 flex flex-col justify-between items-center ${
-              isPulling
-                ? 'border-cyan-400 ring-4 ring-cyan-500/25 shadow-cyan-500/30'
-                : 'border-white/20 hover:border-white/40'
-            }`}>
-              {/* Glass Juice Window / Fluid Physics Simulation */}
-              <div className="relative w-full h-24 rounded-xl bg-black/75 border border-white/15 overflow-hidden flex flex-col justify-end shadow-inner">
-                {/* SVG Liquid Wave with animated surface */}
-                <svg
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  className="w-full h-full absolute inset-0"
-                >
-                  <defs>
-                    <linearGradient id="liquidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop
-                        offset="0%"
-                        stopColor={isPulling ? '#38bdf8' : isLowLiquid ? '#f59e0b' : '#0a84ff'}
-                        stopOpacity={0.85}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={isPulling ? '#6366f1' : isLowLiquid ? '#b45309' : '#0055ff'}
-                        stopOpacity={0.95}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <path d={wavePath} fill="url(#liquidGrad)" />
-                </svg>
-
-                {/* Animated Rising Micro-Bubbles */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  <span className="absolute bottom-2 left-4 h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDuration: '1.8s' }} />
-                  <span className="absolute bottom-1 right-6 h-1 w-1 rounded-full bg-white/50 animate-bounce" style={{ animationDuration: '2.4s' }} />
-                  <span className="absolute bottom-3 left-10 h-1.5 w-1.5 rounded-full bg-white/40 animate-bounce" style={{ animationDuration: '1.5s' }} />
+              {/* Device Body Chassis */}
+              <div className={`relative w-40 h-56 rounded-2xl bg-gradient-to-b from-zinc-800 via-zinc-900 to-black border transition-all duration-300 shadow-2xl overflow-hidden p-3.5 flex flex-col justify-between items-center ${
+                isPulling
+                  ? 'border-cyan-400 ring-4 ring-cyan-500/25 shadow-cyan-500/30'
+                  : 'border-white/20 hover:border-white/40'
+              }`}>
+                <div className="relative w-full h-24 rounded-xl bg-black/75 border border-white/15 overflow-hidden flex flex-col justify-end shadow-inner">
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full absolute inset-0">
+                    <defs>
+                      <linearGradient id="liquidGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor={isPulling ? '#38bdf8' : isLowLiquid ? '#f59e0b' : '#0a84ff'} stopOpacity={0.85} />
+                        <stop offset="100%" stopColor={isPulling ? '#6366f1' : isLowLiquid ? '#b45309' : '#0055ff'} stopOpacity={0.95} />
+                      </linearGradient>
+                    </defs>
+                    <path d={wavePath} fill="url(#liquidGrad2)" />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-xs font-black text-white tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                      {podPercentRemaining}% Liquid
+                    </span>
+                  </div>
                 </div>
 
-                {/* Glass Light Reflection Sheen */}
-                <div className="absolute inset-x-0 top-0 h-full w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 pointer-events-none" />
+                <div className="flex flex-col items-center my-1">
+                  <span className="text-sm font-black tracking-widest text-white uppercase drop-shadow-sm">
+                    {vapeProfile.deviceName.split(' ')[0] || 'ELFBAR'}
+                  </span>
+                  <span className="text-[9px] font-semibold text-zinc-400 tracking-wider">
+                    {vapeProfile.deviceName.split(' ').slice(1).join(' ') || '5000'}
+                  </span>
+                </div>
 
-                {/* Liquid Level Indicator Text */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-xs font-black text-white tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                    {podPercentRemaining}% Liquid
+                <div className="w-full flex items-center justify-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full ${isPulling ? 'bg-cyan-300 animate-ping' : 'bg-emerald-400'}`} />
+                  <span className="text-[9px] font-extrabold text-zinc-300 tracking-wider">
+                    {isPulling ? 'FIRING COIL...' : 'STATUS READY'}
                   </span>
                 </div>
               </div>
-
-              {/* Device Brand Emboss */}
-              <div className="flex flex-col items-center my-1">
-                <span className="text-sm font-black tracking-widest text-white uppercase drop-shadow-sm">
-                  {vapeProfile.deviceName.split(' ')[0] || 'ELFBAR'}
-                </span>
-                <span className="text-[9px] font-semibold text-zinc-400 tracking-wider">
-                  {vapeProfile.deviceName.split(' ').slice(1).join(' ') || '5000'}
-                </span>
-              </div>
-
-              {/* Bottom LED Indicator with Ambient Flare */}
-              <div className="w-full flex items-center justify-center gap-1.5">
-                <span
-                  className={`h-2 w-2 rounded-full transition-all duration-300 ${
-                    isPulling
-                      ? 'bg-cyan-300 shadow-[0_0_12px_#38bdf8] scale-150 animate-ping'
-                      : isLowLiquid
-                      ? 'bg-amber-400 animate-pulse'
-                      : 'bg-emerald-400 shadow-[0_0_8px_#34d399]'
-                  }`}
-                />
-                <span className="text-[9px] font-extrabold text-zinc-300 tracking-wider">
-                  {isPulling ? 'FIRING COIL...' : 'STATUS READY'}
-                </span>
-              </div>
             </div>
+          )}
 
-            <span className="text-[10px] text-zinc-500 font-medium mt-2 flex items-center gap-1 group-hover:text-zinc-300 transition-colors">
-              <Sparkles className="h-3 w-3 text-[var(--accent-purple)]" />
-              Tap device to test puff animation
-            </span>
-          </div>
-
-          {/* Estimated Refill & Pod Life Stats Banner (From Sketch) */}
+          {/* Estimated Refill & Pod Life Stats Banner */}
           <div className="w-full mt-3 rounded-2xl bg-white/5 p-3.5 border border-[var(--border-subtle)] flex items-center justify-between shadow-md">
             <div className="flex items-center gap-3">
               <div
@@ -382,7 +376,7 @@ export const ModelsView: React.FC = () => {
             </div>
 
             <p className="text-xs text-[var(--text-muted)]">
-              This will record your pod refill in INR (₹) and reset the liquid gauge and puff counter to 100% full.
+              This will record your pod refill in INR (₹) and reset the 3D liquid level and puff counter to 100% full.
             </p>
 
             <form onSubmit={handleConfirmRefill} className="flex flex-col gap-3">
