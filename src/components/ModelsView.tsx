@@ -10,7 +10,8 @@ import {
   History,
   CheckCircle2,
   X,
-  Box
+  Box,
+  Image as ImageIcon
 } from 'lucide-react';
 import type { VapeDeviceType } from '../types';
 import { Vape3DCanvas } from './Vape3DCanvas';
@@ -38,14 +39,14 @@ export const ModelsView: React.FC = () => {
   const [showRefillModal, setShowRefillModal] = useState(false);
   const [customRefillCost, setCustomRefillCost] = useState<number>(vapeProfile.costPerPodOrBottle);
   const [isPulling, setIsPulling] = useState(false);
-  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
+  const [viewMode, setViewMode] = useState<'3d' | 'render' | '2d'>('3d');
   const [wavePhase, setWavePhase] = useState(0);
 
   useEffect(() => {
     setCustomRefillCost(vapeProfile.costPerPodOrBottle);
   }, [vapeProfile.costPerPodOrBottle]);
 
-  // Continuous gentle liquid wave oscillation for 2D mode fallback
+  // Continuous gentle liquid wave oscillation for 2D mode
   useEffect(() => {
     let animId: number;
     const updateWave = () => {
@@ -100,19 +101,6 @@ export const ModelsView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* 3D vs 2D Toggle */}
-          <button
-            onClick={() => setViewMode(viewMode === '3d' ? '2d' : '3d')}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-              viewMode === '3d'
-                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm'
-                : 'bg-white/5 text-[var(--text-muted)] border-[var(--border-subtle)]'
-            }`}
-          >
-            <Box className="h-3.5 w-3.5" />
-            <span>{viewMode === '3d' ? '3D Model' : '2D View'}</span>
-          </button>
-
           <button
             onClick={() => {
               setTempProfile(vapeProfile);
@@ -125,7 +113,46 @@ export const ModelsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero 3D / 2D Device Card */}
+      {/* 3D Mode Selector Pills (3D WebGL, Studio Render, 2D Schematic) */}
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
+        <button
+          onClick={() => setViewMode('3d')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            viewMode === '3d'
+              ? 'bg-cyan-500 text-black shadow-md'
+              : 'text-[var(--text-muted)] hover:text-white'
+          }`}
+        >
+          <Box className="h-3.5 w-3.5" />
+          <span>Interactive 3D</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('render')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            viewMode === 'render'
+              ? 'bg-[var(--accent-purple)] text-white shadow-md'
+              : 'text-[var(--text-muted)] hover:text-white'
+          }`}
+        >
+          <ImageIcon className="h-3.5 w-3.5" />
+          <span>Studio 3D Render</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('2d')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            viewMode === '2d'
+              ? 'bg-white/20 text-white shadow-md'
+              : 'text-[var(--text-muted)] hover:text-white'
+          }`}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          <span>2D View</span>
+        </button>
+      </div>
+
+      {/* Hero 3D / Render Device Card */}
       <div className="glass-panel p-5 flex flex-col items-center justify-center relative overflow-hidden">
         {/* Atmospheric Floating Ambient Glow */}
         <div
@@ -152,8 +179,8 @@ export const ModelsView: React.FC = () => {
             </div>
           </div>
 
-          {/* 3D GENERATED MODEL VIEWPORT */}
-          {viewMode === '3d' ? (
+          {/* 1. INTERACTIVE 3D WEBGL MODEL */}
+          {viewMode === '3d' && (
             <div className="w-full flex flex-col items-center">
               <Vape3DCanvas
                 deviceName={vapeProfile.deviceName}
@@ -162,10 +189,10 @@ export const ModelsView: React.FC = () => {
                 onTapDevice={handleDevicePull}
               />
 
-              <div className="flex items-center justify-between w-full mt-1 px-1">
+              <div className="flex items-center justify-between w-full mt-2 px-1">
                 <span className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium">
                   <Sparkles className="h-3 w-3 text-cyan-400" />
-                  Drag 3D model to rotate • Tap to fire
+                  Drag 3D model to rotate 360° • Tap to fire
                 </span>
                 <button
                   onClick={handleDevicePull}
@@ -175,19 +202,48 @@ export const ModelsView: React.FC = () => {
                 </button>
               </div>
             </div>
-          ) : (
-            /* 2D Schematic Fallback View */
+          )}
+
+          {/* 2. PHOTOREALISTIC STUDIO 3D RENDER (NANO BANANA ASSET) */}
+          {viewMode === 'render' && (
+            <div
+              onClick={handleDevicePull}
+              className="relative my-2 w-full max-w-[280px] rounded-3xl overflow-hidden border border-white/20 shadow-2xl cursor-pointer group active:scale-95 transition-all"
+            >
+              <img
+                src="/assets/vape_3d_render.jpg"
+                alt="3D Vape Pod Render"
+                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+
+              {/* Dynamic Liquid Level & Info Glass Overlay */}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-white tracking-wider">
+                    {vapeProfile.deviceName}
+                  </span>
+                  <span className="text-xs font-bold text-cyan-300 bg-cyan-900/60 px-2 py-0.5 rounded-full border border-cyan-500/40">
+                    {podPercentRemaining}% Liquid
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-medium">
+                  Tap image to test fire with haptics
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* 3. 2D SCHEMATIC VIEW */}
+          {viewMode === '2d' && (
             <div
               onClick={handleDevicePull}
               title="Tap device to take an animated test hit!"
               className="relative my-2 flex flex-col items-center cursor-pointer group select-none transition-transform duration-200 active:scale-95"
             >
-              {/* Mouthpiece */}
               <div className={`w-12 h-6 rounded-t-xl border-t border-x border-white/20 transition-all duration-300 shadow-inner ${
                 isPulling ? 'bg-zinc-700 shadow-[0_0_12px_rgba(56,189,248,0.6)]' : 'bg-zinc-800'
               }`} />
 
-              {/* Device Body Chassis */}
               <div className={`relative w-40 h-56 rounded-2xl bg-gradient-to-b from-zinc-800 via-zinc-900 to-black border transition-all duration-300 shadow-2xl overflow-hidden p-3.5 flex flex-col justify-between items-center ${
                 isPulling
                   ? 'border-cyan-400 ring-4 ring-cyan-500/25 shadow-cyan-500/30'

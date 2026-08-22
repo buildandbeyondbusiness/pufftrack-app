@@ -21,16 +21,15 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
   const modelGroupRef = useRef<THREE.Group | null>(null);
   const liquidMeshRef = useRef<THREE.Mesh | null>(null);
   const coilLightRef = useRef<THREE.PointLight | null>(null);
-  const coilMeshRef = useRef<THREE.Mesh | null>(null);
   const ledLightRef = useRef<THREE.PointLight | null>(null);
-  const ledMeshRef = useRef<THREE.Mesh | null>(null);
+  const bubblesGroupRef = useRef<THREE.Group | null>(null);
   const vaporParticlesRef = useRef<{ mesh: THREE.Mesh; vy: number; vx: number; vz: number; life: number }[]>([]);
 
   const [isAutoRotate, setIsAutoRotate] = useState<boolean>(true);
   const isDraggingRef = useRef<boolean>(false);
   const previousMousePositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const targetRotationRef = useRef<{ x: number; y: number }>({ x: 0.15, y: 0.4 });
-  const currentRotationRef = useRef<{ x: number; y: number }>({ x: 0.15, y: 0.4 });
+  const targetRotationRef = useRef<{ x: number; y: number }>({ x: 0.1, y: 0.35 });
+  const currentRotationRef = useRef<{ x: number; y: number }>({ x: 0.1, y: 0.35 });
 
   useEffect(() => {
     const container = containerRef.current;
@@ -43,11 +42,11 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
     const width = container.clientWidth || 320;
     const height = container.clientHeight || 340;
 
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
-    camera.position.set(0, 0.4, 7.2);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+    camera.position.set(0, 0.2, 6.8);
     cameraRef.current = camera;
 
-    // 2. Initialize WebGL Renderer with Anti-Aliasing & Alpha Transparency
+    // 2. Initialize WebGL Renderer
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -56,27 +55,26 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.35;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     container.replaceChildren(renderer.domElement);
     rendererRef.current = renderer;
 
     // 3. Studio Lighting Rig
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0x60a5fa, 2.2);
-    keyLight.position.set(4, 6, 5);
+    const keyLight = new THREE.DirectionalLight(0x38bdf8, 2.8);
+    keyLight.position.set(4, 5, 5);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xa855f7, 1.6);
-    fillLight.position.set(-4, -2, 3);
+    const fillLight = new THREE.DirectionalLight(0x818cf8, 1.8);
+    fillLight.position.set(-4, -1, 3);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 2.0);
-    rimLight.position.set(0, 5, -4);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    rimLight.position.set(0, 6, -4);
     scene.add(rimLight);
 
     // 4. Create Vape Model Group
@@ -84,148 +82,137 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
     scene.add(modelGroup);
     modelGroupRef.current = modelGroup;
 
-    // --- Dynamic Texture for Brand Typography ---
+    // --- Dynamic Texture for Metallic Body ---
     const textCanvas = document.createElement('canvas');
     textCanvas.width = 512;
     textCanvas.height = 512;
     const ctx = textCanvas.getContext('2d')!;
-    ctx.fillStyle = '#111318';
+    
+    // Dark brushed titanium gradient
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, '#1c1f26');
+    grad.addColorStop(0.5, '#12141a');
+    grad.addColorStop(1, '#0b0c10');
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 512, 512);
-
-    // Subtle Carbon Fiber Texture lines
-    ctx.strokeStyle = '#1e222d';
-    ctx.lineWidth = 2;
-    for (let i = -512; i < 1024; i += 16) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i + 512, 512);
-      ctx.stroke();
-    }
 
     // Brand Name Text
     ctx.fillStyle = '#ffffff';
-    ctx.font = '900 52px -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto';
+    ctx.font = '900 48px -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto';
     ctx.textAlign = 'center';
     ctx.fillText(deviceName.toUpperCase().split(' ')[0] || 'ELFBAR', 256, 360);
 
-    ctx.fillStyle = '#60a5fa';
-    ctx.font = '700 28px -apple-system, system-ui';
-    ctx.fillText('DISPOSABLE POD • 5%', 256, 410);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 24px -apple-system, system-ui';
+    ctx.fillText('5000 PUFFS • NIC SALT', 256, 405);
 
     const brandTexture = new THREE.CanvasTexture(textCanvas);
 
-    // --- Main Aluminum Body Chassis ---
-    const bodyGeometry = new THREE.BoxGeometry(2.1, 2.7, 1.1, 16, 16, 16);
+    // --- Main Pill Capsule Titanium Body ---
+    const bodyGeometry = new THREE.CylinderGeometry(1.05, 1.05, 2.8, 48);
     const bodyMaterial = new THREE.MeshStandardMaterial({
       map: brandTexture,
-      roughness: 0.35,
-      metalness: 0.65,
-      color: 0x222630,
+      roughness: 0.28,
+      metalness: 0.75,
+      color: 0x2d3748,
     });
     const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
     bodyMesh.position.set(0, -0.65, 0);
     modelGroup.add(bodyMesh);
 
-    // --- Translucent Quartz Glass Tank Reservoir ---
-    const glassGeometry = new THREE.BoxGeometry(1.9, 1.35, 0.95);
+    // --- Inset Quartz Glass Tank Reservoir ---
+    const glassGeometry = new THREE.BoxGeometry(1.4, 1.4, 0.85);
     const glassMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       transparent: true,
       opacity: 0.35,
-      roughness: 0.1,
-      metalness: 0.1,
-      transmission: 0.9,
-      ior: 1.5,
-      thickness: 0.5,
+      roughness: 0.05,
+      metalness: 0.05,
+      transmission: 0.95,
+      ior: 1.52,
+      thickness: 0.6,
     });
     const glassMesh = new THREE.Mesh(glassGeometry, glassMaterial);
-    glassMesh.position.set(0, 1.35, 0);
+    glassMesh.position.set(0, 1.15, 0.2);
     modelGroup.add(glassMesh);
 
     // --- Dynamic Liquid Mesh Inside Tank ---
-    const initialLiquidHeight = Math.max(0.05, 1.25 * (podPercentRemaining / 100));
-    const liquidGeometry = new THREE.BoxGeometry(1.82, initialLiquidHeight, 0.88);
+    const initialLiquidHeight = Math.max(0.08, 1.3 * (podPercentRemaining / 100));
+    const liquidGeometry = new THREE.BoxGeometry(1.32, initialLiquidHeight, 0.78);
     const liquidMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0ea5e9,
-      roughness: 0.2,
-      metalness: 0.3,
+      color: 0x06b6d4, // Cyan glow
+      roughness: 0.15,
+      metalness: 0.2,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
     });
     const liquidMesh = new THREE.Mesh(liquidGeometry, liquidMaterial);
-    // Align liquid to the bottom of the glass tank
-    liquidMesh.position.set(0, 1.35 - (1.35 / 2) + (initialLiquidHeight / 2), 0);
+    liquidMesh.position.set(0, 1.15 - (1.4 / 2) + (initialLiquidHeight / 2), 0.2);
     modelGroup.add(liquidMesh);
     liquidMeshRef.current = liquidMesh;
 
-    // --- Internal Ceramic Coil Chimney ---
-    const coilChimneyGeom = new THREE.CylinderGeometry(0.2, 0.2, 1.3, 32);
-    const coilChimneyMat = new THREE.MeshStandardMaterial({
-      color: 0x71717a,
-      roughness: 0.3,
-      metalness: 0.9,
+    // --- Bubbles Group Inside Liquid ---
+    const bubblesGroup = new THREE.Group();
+    liquidMesh.add(bubblesGroup);
+    bubblesGroupRef.current = bubblesGroup;
+
+    const bubbleGeom = new THREE.SphereGeometry(0.04, 12, 12);
+    const bubbleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+    for (let b = 0; b < 12; b++) {
+      const bubble = new THREE.Mesh(bubbleGeom, bubbleMat);
+      bubble.position.set(
+        (Math.random() - 0.5) * 1.0,
+        (Math.random() - 0.5) * 0.8,
+        (Math.random() - 0.5) * 0.5
+      );
+      bubblesGroup.add(bubble);
+    }
+
+    // --- Ceramic Chimney & Heating Coil ---
+    const chimneyGeom = new THREE.CylinderGeometry(0.16, 0.16, 1.4, 24);
+    const chimneyMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.2,
+      metalness: 0.95,
     });
-    const chimneyMesh = new THREE.Mesh(coilChimneyGeom, coilChimneyMat);
-    chimneyMesh.position.set(0, 1.35, 0);
+    const chimneyMesh = new THREE.Mesh(chimneyGeom, chimneyMat);
+    chimneyMesh.position.set(0, 1.15, 0.2);
     modelGroup.add(chimneyMesh);
 
-    // --- Glowing Coil Wire Core ---
-    const coilGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.45, 16);
-    const coilMat = new THREE.MeshBasicMaterial({
-      color: 0xff4500,
-    });
-    const coilMesh = new THREE.Mesh(coilGeom, coilMat);
-    coilMesh.position.set(0, 1.0, 0);
-    modelGroup.add(coilMesh);
-    coilMeshRef.current = coilMesh;
-
-    const coilLight = new THREE.PointLight(0xff6600, 0, 3);
-    coilLight.position.set(0, 1.0, 0);
+    const coilLight = new THREE.PointLight(0xff7700, 0, 3.5);
+    coilLight.position.set(0, 0.9, 0.2);
     modelGroup.add(coilLight);
     coilLightRef.current = coilLight;
 
     // --- Ergonomic Whistle Mouthpiece (Drip Tip) ---
-    const mouthGeometry = new THREE.CylinderGeometry(0.45, 0.75, 0.65, 32);
+    const mouthGeometry = new THREE.CylinderGeometry(0.4, 0.7, 0.75, 32);
     const mouthMaterial = new THREE.MeshStandardMaterial({
-      color: 0x18181b,
-      roughness: 0.2,
-      metalness: 0.8,
+      color: 0x09090b,
+      roughness: 0.15,
+      metalness: 0.85,
     });
     const mouthpieceMesh = new THREE.Mesh(mouthGeometry, mouthMaterial);
-    mouthpieceMesh.position.set(0, 2.3, 0);
+    mouthpieceMesh.position.set(-0.25, 2.15, 0);
     modelGroup.add(mouthpieceMesh);
 
-    // Mouthpiece Airway Hole
-    const holeGeom = new THREE.CylinderGeometry(0.22, 0.22, 0.1, 32);
+    // Mouthpiece Bore Hole
+    const holeGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.1, 24);
     const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
     const holeMesh = new THREE.Mesh(holeGeom, holeMat);
-    holeMesh.position.set(0, 2.63, 0);
+    holeMesh.position.set(-0.25, 2.53, 0);
     modelGroup.add(holeMesh);
 
-    // --- Bottom Base Cap with Glowing LED Ring ---
-    const baseCapGeom = new THREE.BoxGeometry(2.1, 0.2, 1.1);
-    const baseCapMat = new THREE.MeshStandardMaterial({
-      color: 0x18181b,
-      roughness: 0.4,
-      metalness: 0.8,
-    });
-    const baseCapMesh = new THREE.Mesh(baseCapGeom, baseCapMat);
-    baseCapMesh.position.set(0, -2.05, 0);
-    modelGroup.add(baseCapMesh);
-
-    // Status LED Ring
-    const ledGeom = new THREE.RingGeometry(0.12, 0.28, 32);
+    // --- Bottom Base LED Ring ---
+    const ledGeom = new THREE.TorusGeometry(0.95, 0.08, 16, 48);
     const ledMat = new THREE.MeshBasicMaterial({
-      color: 0x34d399,
-      side: THREE.DoubleSide,
+      color: 0x10b981, // Emerald green
     });
     const ledMesh = new THREE.Mesh(ledGeom, ledMat);
     ledMesh.rotation.x = Math.PI / 2;
-    ledMesh.position.set(0, -2.16, 0);
+    ledMesh.position.set(0, -2.02, 0);
     modelGroup.add(ledMesh);
-    ledMeshRef.current = ledMesh;
 
-    const ledLight = new THREE.PointLight(0x34d399, 1.2, 2);
+    const ledLight = new THREE.PointLight(0x10b981, 1.4, 2.5);
     ledLight.position.set(0, -2.3, 0);
     modelGroup.add(ledLight);
     ledLightRef.current = ledLight;
@@ -233,13 +220,14 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
     // 5. Animation Loop
     let animId: number;
     const clock = new THREE.Clock();
+
     const animate = () => {
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // Smooth Rotation Interpolation
+      // Smooth Rotation
       if (isAutoRotate && !isDraggingRef.current) {
-        targetRotationRef.current.y += delta * 0.7;
+        targetRotationRef.current.y += delta * 0.65;
       }
 
       currentRotationRef.current.x += (targetRotationRef.current.x - currentRotationRef.current.x) * 0.1;
@@ -248,14 +236,14 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
       if (modelGroupRef.current) {
         modelGroupRef.current.rotation.x = currentRotationRef.current.x;
         modelGroupRef.current.rotation.y = currentRotationRef.current.y;
-        // Floating hover motion
-        modelGroupRef.current.position.y = Math.sin(time * 2) * 0.08;
+        modelGroupRef.current.position.y = Math.sin(time * 2.2) * 0.07;
       }
 
-      // Dynamic Liquid Slosh & Waves
-      if (liquidMeshRef.current) {
-        const slosh = Math.sin(time * 3 + currentRotationRef.current.y * 2) * 0.03;
-        liquidMeshRef.current.rotation.z = slosh;
+      // Bubble oscillations
+      if (bubblesGroupRef.current) {
+        bubblesGroupRef.current.children.forEach((child, idx) => {
+          child.position.y += Math.sin(time * 3 + idx) * 0.003;
+        });
       }
 
       // Update Vapor Particles
@@ -302,9 +290,9 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
   // Update Liquid Height when Pod % changes
   useEffect(() => {
     if (!liquidMeshRef.current) return;
-    const height = Math.max(0.05, 1.25 * (podPercentRemaining / 100));
+    const height = Math.max(0.08, 1.3 * (podPercentRemaining / 100));
     liquidMeshRef.current.scale.set(1, podPercentRemaining / 100, 1);
-    liquidMeshRef.current.position.y = 1.35 - (1.35 / 2) + (height / 2);
+    liquidMeshRef.current.position.y = 1.15 - (1.4 / 2) + (height / 2);
   }, [podPercentRemaining]);
 
   // Trigger Firing Effects (Coil glow & 3D vapor puffs)
@@ -312,23 +300,23 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
     if (!coilLightRef.current || !ledLightRef.current || !sceneRef.current) return;
 
     if (isFiring) {
-      coilLightRef.current.intensity = 4.5;
-      ledLightRef.current.intensity = 5.0;
+      coilLightRef.current.intensity = 5.0;
+      ledLightRef.current.intensity = 5.5;
 
       // Spawn 3D Vapor Particles from Mouthpiece
       const vaporGeom = new THREE.SphereGeometry(0.12, 12, 12);
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 16; i++) {
         const vaporMat = new THREE.MeshStandardMaterial({
           color: 0x93c5fd,
           transparent: true,
-          opacity: 0.65,
+          opacity: 0.7,
           roughness: 0.8,
         });
         const vMesh = new THREE.Mesh(vaporGeom, vaporMat);
         vMesh.position.set(
-          (Math.random() - 0.5) * 0.2,
-          2.6 + Math.random() * 0.1,
-          (Math.random() - 0.5) * 0.2
+          -0.25 + (Math.random() - 0.5) * 0.15,
+          2.5 + Math.random() * 0.1,
+          (Math.random() - 0.5) * 0.15
         );
         sceneRef.current.add(vMesh);
         vaporParticlesRef.current.push({
@@ -341,7 +329,7 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
       }
     } else {
       coilLightRef.current.intensity = 0;
-      ledLightRef.current.intensity = 1.2;
+      ledLightRef.current.intensity = 1.4;
     }
   }, [isFiring]);
 
@@ -402,7 +390,7 @@ export const Vape3DCanvas: React.FC<Vape3DCanvasProps> = ({
           Side
         </button>
         <button
-          onClick={() => setViewAngle(0.65, 0.4)}
+          onClick={() => setViewAngle(0.55, 0.45)}
           className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-white/5 border border-[var(--border-subtle)] hover:bg-white/15 text-[var(--text-muted)] hover:text-white transition-all cursor-pointer"
         >
           Isometric 3D
