@@ -9,9 +9,10 @@ import {
   Calendar,
   History,
   CheckCircle2,
-  X
+  X,
+  Check
 } from 'lucide-react';
-import type { VapeDeviceType } from '../types';
+import type { VapeDeviceType, VapeProfile } from '../types';
 
 export const ModelsView: React.FC = () => {
   const {
@@ -32,15 +33,18 @@ export const ModelsView: React.FC = () => {
   } = usePuff();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [tempProfile, setTempProfile] = useState(vapeProfile);
+  const [tempProfile, setTempProfile] = useState<VapeProfile>(vapeProfile);
   const [showRefillModal, setShowRefillModal] = useState(false);
-  const [customRefillCost, setCustomRefillCost] = useState<number>(vapeProfile.costPerPodOrBottle);
+  const [customRefillCost, setCustomRefillCost] = useState<number>(vapeProfile.costPerPodOrBottle || 1800);
   const [isPulling, setIsPulling] = useState(false);
   const [wavePhase, setWavePhase] = useState(0);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Synchronize tempProfile with vapeProfile whenever vapeProfile updates
   useEffect(() => {
-    setCustomRefillCost(vapeProfile.costPerPodOrBottle);
-  }, [vapeProfile.costPerPodOrBottle]);
+    setTempProfile(vapeProfile);
+    setCustomRefillCost(vapeProfile.costPerPodOrBottle || 1800);
+  }, [vapeProfile]);
 
   // Continuous realistic fluid wave oscillation
   useEffect(() => {
@@ -57,8 +61,22 @@ export const ModelsView: React.FC = () => {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    updateVapeProfile(tempProfile);
+    const sanitized: VapeProfile = {
+      ...tempProfile,
+      deviceName: tempProfile.deviceName?.trim() || 'ElfBar 5000',
+      deviceType: tempProfile.deviceType || 'Disposable',
+      nicotineMgPerMl: Number(tempProfile.nicotineMgPerMl) || 50,
+      podCapacityMl: Number(tempProfile.podCapacityMl) || 13,
+      totalPuffsPerPod: Math.max(1, Number(tempProfile.totalPuffsPerPod) || 5000),
+      costPerPodOrBottle: Math.max(1, Number(tempProfile.costPerPodOrBottle) || 1800),
+      dailyLimitGoal: Math.max(1, Number(tempProfile.dailyLimitGoal) || 60),
+      currency: '₹',
+    };
+
+    updateVapeProfile(sanitized);
     setIsEditing(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   const handleDevicePull = () => {
@@ -92,19 +110,28 @@ export const ModelsView: React.FC = () => {
             Device Model
           </h1>
           <p className="text-xs text-[var(--text-muted)] font-medium">
-            Active Hardware Specs & Refill Cost System
+            Hardware Configuration & Pod Lifespan
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setTempProfile(vapeProfile);
-            setIsEditing(!isEditing);
-          }}
-          className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--bg-accent-pill)] text-[var(--accent-purple)] border border-[var(--border-subtle)] hover:bg-[var(--accent-purple-glow)] transition-all cursor-pointer"
-        >
-          {isEditing ? 'Cancel' : 'Edit Specs'}
-        </button>
+        <div className="flex items-center gap-2">
+          {saveSuccess && (
+            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/15 px-2.5 py-1 rounded-full border border-emerald-500/30 animate-in fade-in">
+              <Check className="h-3 w-3" />
+              Saved!
+            </span>
+          )}
+
+          <button
+            onClick={() => {
+              setTempProfile(vapeProfile);
+              setIsEditing(!isEditing);
+            }}
+            className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--bg-accent-pill)] text-[var(--accent-purple)] border border-[var(--border-subtle)] hover:bg-[var(--accent-purple-glow)] transition-all cursor-pointer"
+          >
+            {isEditing ? 'Cancel' : 'Edit Specs'}
+          </button>
+        </div>
       </div>
 
       {/* Hero Vape Device Card with Interactive Animations */}
@@ -218,10 +245,10 @@ export const ModelsView: React.FC = () => {
 
               {/* Device Typography Brand */}
               <div className="flex flex-col items-center my-1">
-                <span className="text-sm font-black tracking-widest text-white uppercase drop-shadow-sm">
+                <span className="text-sm font-black tracking-widest text-white uppercase drop-shadow-sm truncate max-w-[140px] text-center">
                   {vapeProfile.deviceName.split(' ')[0] || 'ELFBAR'}
                 </span>
-                <span className="text-[9px] font-semibold text-zinc-400 tracking-wider">
+                <span className="text-[9px] font-semibold text-zinc-400 tracking-wider truncate max-w-[140px] text-center">
                   {vapeProfile.deviceName.split(' ').slice(1).join(' ') || '5000'}
                 </span>
               </div>
@@ -455,9 +482,10 @@ export const ModelsView: React.FC = () => {
               <label className="text-[11px] font-semibold text-[var(--text-muted)] mb-1 block">Device Model Name</label>
               <input
                 type="text"
+                required
                 value={tempProfile.deviceName}
                 onChange={(e) => setTempProfile({ ...tempProfile, deviceName: e.target.value })}
-                className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)]"
+                className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)] font-medium"
               />
             </div>
 
@@ -482,6 +510,7 @@ export const ModelsView: React.FC = () => {
                 <input
                   type="number"
                   step="0.5"
+                  required
                   value={tempProfile.nicotineMgPerMl}
                   onChange={(e) => setTempProfile({ ...tempProfile, nicotineMgPerMl: Number(e.target.value) })}
                   className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)]"
@@ -495,9 +524,10 @@ export const ModelsView: React.FC = () => {
                 <input
                   type="number"
                   step="0.5"
+                  required
                   value={tempProfile.podCapacityMl}
                   onChange={(e) => setTempProfile({ ...tempProfile, podCapacityMl: Number(e.target.value) })}
-                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none"
+                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)]"
                 />
               </div>
 
@@ -505,9 +535,10 @@ export const ModelsView: React.FC = () => {
                 <label className="text-[11px] font-semibold text-[var(--text-muted)] mb-1 block">Total Puffs</label>
                 <input
                   type="number"
+                  required
                   value={tempProfile.totalPuffsPerPod}
                   onChange={(e) => setTempProfile({ ...tempProfile, totalPuffsPerPod: Number(e.target.value) })}
-                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none"
+                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)]"
                 />
               </div>
 
@@ -516,9 +547,10 @@ export const ModelsView: React.FC = () => {
                 <input
                   type="number"
                   step="10"
+                  required
                   value={tempProfile.costPerPodOrBottle}
                   onChange={(e) => setTempProfile({ ...tempProfile, costPerPodOrBottle: Number(e.target.value) })}
-                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none font-bold text-emerald-400"
+                  className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-2.5 py-2 text-xs text-[var(--text-main)] outline-none font-bold text-emerald-400 focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -527,9 +559,10 @@ export const ModelsView: React.FC = () => {
               <label className="text-[11px] font-semibold text-[var(--text-muted)] mb-1 block">Daily Target Limit</label>
               <input
                 type="number"
+                required
                 value={tempProfile.dailyLimitGoal}
                 onChange={(e) => setTempProfile({ ...tempProfile, dailyLimitGoal: Number(e.target.value) })}
-                className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-xs text-[var(--text-main)] font-bold text-[var(--accent-purple)] outline-none"
+                className="w-full rounded-xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-xs text-[var(--text-main)] font-bold text-[var(--accent-purple)] outline-none focus:border-[var(--accent-purple)]"
               />
             </div>
 
@@ -543,9 +576,10 @@ export const ModelsView: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-[var(--accent-purple)] text-white shadow-lg cursor-pointer"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-[var(--accent-purple)] hover:opacity-90 text-white shadow-lg cursor-pointer transition-all active:scale-95 flex items-center gap-1"
               >
-                Save Specs
+                <Check className="h-3.5 w-3.5" />
+                <span>Save Specs</span>
               </button>
             </div>
           </form>

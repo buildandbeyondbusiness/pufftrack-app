@@ -22,6 +22,7 @@ import {
   syncSavePuff,
   syncDeletePuff,
   subscribeUserPuffs,
+  subscribeUserProfile,
   syncSaveUserProfile,
 } from '../firebase/service';
 import { backendApi } from '../services/backendApi';
@@ -48,7 +49,7 @@ interface PuffContextType {
   todayVapingTimeSeconds: number;
   averageBreakMinutes: number;
   past7Days: DaySummary[];
-  hourlyDistribution: number[]; // 24 items
+  hourlyDistribution: number[];
 
   // Pod & Refill metrics (INR ₹)
   podPuffsUsed: number;
@@ -187,7 +188,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (e) {
       console.error(e);
     }
-    return 1850; // Demo initial pod puffs
+    return 1850;
   });
 
   const [refillHistory, setRefillHistory] = useState<PodRefillRecord[]>(() => {
@@ -244,7 +245,6 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
-  // Timer tick for live status
   useEffect(() => {
     const timer = setInterval(() => setNowTimestamp(Date.now()), 10000);
     return () => clearInterval(timer);
@@ -287,8 +287,11 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [syncKey, settings.soundEnabled, settings.hapticsEnabled]);
 
-  // Auth Listener
+  // Auth Listener & Cloud Data Hydration
   useEffect(() => {
+    let unsubscribeProfile: (() => void) | null = null;
+    let unsubscribePuffs: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         const uProfile: UserProfile = {
@@ -299,10 +302,25 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setUser(uProfile);
         setIsCloudSyncing(true);
-        subscribeUserPuffs(firebaseUser.uid, (cloudPuffs: PuffLog[]) => {
+
+        // 1. Subscribe to Cloud Puffs
+        unsubscribePuffs = subscribeUserPuffs(firebaseUser.uid, (cloudPuffs: PuffLog[]) => {
           setIsCloudSyncing(false);
           if (cloudPuffs && cloudPuffs.length > 0) {
             setPuffs(cloudPuffs);
+            localStorage.setItem(STORAGE_KEY_PUFFS, JSON.stringify(cloudPuffs));
+          }
+        });
+
+        // 2. Subscribe to Cloud Hardware Profile & Settings
+        unsubscribeProfile = subscribeUserProfile(firebaseUser.uid, (cloudData) => {
+          if (cloudData.vapeProfile) {
+            setVapeProfile(cloudData.vapeProfile);
+            localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(cloudData.vapeProfile));
+          }
+          if (cloudData.settings) {
+            setSettings(cloudData.settings);
+            localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(cloudData.settings));
           }
         });
       } else {
@@ -311,39 +329,39 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribePuffs) unsubscribePuffs();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
-  // Local storage fallback sync
+  // Universal Local Storage Cache Persistence
   useEffect(() => {
-    if (!user) {
-      localStorage.setItem(STORAGE_KEY_PUFFS, JSON.stringify(puffs));
-    }
-  }, [puffs, user]);
+    localStorage.setItem(STORAGE_KEY_PUFFS, JSON.stringify(puffs));
+  }, [puffs]);
 
   useEffect(() => {
-    if (!user) {
-      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(vapeProfile));
-    }
-  }, [vapeProfile, user]);
+    localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(vapeProfile));
+  }, [vapeProfile]);
 
   useEffect(() => {
-    if (!user) {
-      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
-    }
-  }, [settings, user]);
+    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+  }, [settings]);
 
   // Derived metrics
-  const currentLimit = vapeProfile.dailyLimitGoal;
+  const currentLimit = vapeProfile.dailyLimitGoal || 60;
 
   const nicotinePerPuffMg = useMemo(() => {
-    const totalNic = vapeProfile.nicotineMgPerMl * vapeProfile.podCapacityMl;
+    const totalNic = (vapeProfile.nicotineMgPerMl || 50) * (vapeProfile.podCapacityMl || 13);
     return vapeProfile.totalPuffsPerPod > 0 ? totalNic / vapeProfile.totalPuffsPerPod : 0.1;
   }, [vapeProfile]);
 
   // Cost per puff in INR (₹)
   const costPerPuff = useMemo(() => {
-    return vapeProfile.totalPuffsPerPod > 0 ? vapeProfile.costPerPodOrBottle / vapeProfile.totalPuffsPerPod : 0.36;
+    const podCost = vapeProfile.costPerPodOrBottle || 1800;
+    const totalPuffs = vapeProfile.totalPuffsPerPod || 5000;
+    return totalPuffs > 0 ? podCost / totalPuffs : 0.36;
   }, [vapeProfile]);
 
   const todayPuffs = useMemo(() => {
@@ -364,10 +382,10 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [puffs, nowTimestamp]);
 
   // Pod & Refill Cost Metrics in INR (₹)
-  const podPuffsRemaining = Math.max(0, vapeProfile.totalPuffsPerPod - podPuffsUsed);
+  const podPuffsRemaining = Math.max(0, (vapeProfile.totalPuffsPerPod || 5000) - podPuffsUsed);
   const podPercentRemaining = Math.max(
     0,
-    Math.min(100, Math.round((podPuffsRemaining / Math.max(1, vapeProfile.totalPuffsPerPod)) * 100))
+    Math.min(100, Math.round((podPuffsRemaining / Math.max(1, vapeProfile.totalPuffsPerPod || 5000)) * 100))
   );
 
   const estimatedDaysUntilRefill = useMemo(() => {
@@ -492,8 +510,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return hours;
   }, [todayPuffs]);
 
-  // Lung Health calculation strictly mapped to user Daily Puffs categories:
-  // 0: None, 1–25: Lower, 26–75: Moderate, 76–199: High, 200+: Very High
+  // Lung Health calculation
   const lungHealth: LungHealthInfo = useMemo(() => {
     const cleanMins = Math.floor(timeSinceLastPuffSeconds / 60);
 
@@ -671,7 +688,10 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateVapeProfile = (updates: Partial<VapeProfile>) => {
     setVapeProfile((prev) => {
       const next = { ...prev, ...updates, currency: '₹' };
-      if (user) syncSaveUserProfile(user.uid, next, settings);
+      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(next));
+      if (user) {
+        syncSaveUserProfile(user.uid, next, settings);
+      }
       return next;
     });
     soundManager.playClickSound(settings.soundEnabled);
@@ -680,7 +700,10 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateSettings = (updates: Partial<AppSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...updates };
-      if (user) syncSaveUserProfile(user.uid, vapeProfile, next);
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(next));
+      if (user) {
+        syncSaveUserProfile(user.uid, vapeProfile, next);
+      }
       return next;
     });
     soundManager.playClickSound(settings.soundEnabled);
