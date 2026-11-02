@@ -55,7 +55,7 @@ export const ProgressView: React.FC = () => {
     };
   }, [dateOffset, puffs]);
 
-  // Weekly Trend Chart Data (S M T W T F S) matching Screenshot 2
+  // Weekly Trend Chart Data (S M T W T F S) in Dark Theme
   const weeklyChartData = useMemo(() => {
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0 is Sunday, 6 is Saturday
@@ -76,7 +76,6 @@ export const ProgressView: React.FC = () => {
         (p) => p.timestamp >= d.getTime() && p.timestamp < nextD.getTime()
       ).length;
 
-      // Realistic values matching Screenshot 2 trend
       result.push({
         day: dayNames[i],
         puffs: d.getTime() <= Date.now() ? (dayHits === 0 && i >= 4 ? 13 : dayHits) : 0,
@@ -94,24 +93,25 @@ export const ProgressView: React.FC = () => {
   }, [weeklyChartData]);
 
   return (
-    <div className="relative flex flex-col w-full px-5 pb-8 pt-1 text-slate-900 select-none">
-      {/* Decorative Pastel Gradient Orbs in Background matching Screenshot 2 */}
-      <div className="absolute top-10 right-4 w-48 h-48 rounded-full bg-indigo-200/40 blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-52 left-2 w-48 h-48 rounded-full bg-purple-200/35 blur-3xl pointer-events-none -z-10" />
+    <div className="relative flex flex-col w-full px-5 pb-8 pt-1 text-white select-none">
+      {/* Ambient Dark Atmospheric Glow Orbs */}
+      <div className="absolute top-10 right-4 w-56 h-56 rounded-full bg-indigo-600/15 blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-52 left-2 w-56 h-56 rounded-full bg-purple-600/15 blur-3xl pointer-events-none -z-10" />
 
-      {/* Title matching Screenshot 2 */}
+      {/* Title */}
       <div className="w-full pt-1 pb-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+        <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">
           My Analytics
         </h1>
       </div>
 
-      {/* Date Switcher Royal Blue Gradient Capsule matching Screenshot 2 */}
+      {/* Date Switcher Royal Blue Gradient Capsule */}
       <div
-        className="w-full rounded-2xl p-3.5 flex items-center justify-between shadow-lg mb-6 select-none"
+        className="w-full rounded-2xl p-3.5 flex items-center justify-between shadow-xl mb-6 select-none"
         style={{
           background: 'linear-gradient(135deg, #4338ca 0%, #4f46e5 50%, #6366f1 100%)',
           boxShadow: '0 10px 25px -5px rgba(79, 70, 229, 0.45)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
         }}
       >
         {/* Left Chevron Button */}
@@ -146,11 +146,11 @@ export const ProgressView: React.FC = () => {
         </button>
       </div>
 
-      {/* Weekly Trend Section matching Screenshot 2 */}
+      {/* Weekly Trend Section in Dark Glass */}
       <div className="w-full mb-6">
-        <h2 className="text-base font-bold text-slate-900 mb-3">Weekly Trend</h2>
+        <h2 className="text-base font-bold text-white mb-3">Weekly Trend</h2>
 
-        <div className="w-full rounded-[24px] bg-white border border-slate-100/80 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+        <div className="w-full rounded-[24px] bg-[#18181c]/85 border border-white/[0.08] backdrop-blur-xl p-4 shadow-xl">
           <div className="h-52 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
@@ -158,43 +158,43 @@ export const ProgressView: React.FC = () => {
                 margin={{ top: 15, right: 10, left: -20, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="purpleAreaGradientLight" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
+                  <linearGradient id="purpleAreaGradientDark" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.5} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
 
                 <CartesianGrid
                   strokeDasharray="4 4"
-                  stroke="#e2e8f0"
+                  stroke="rgba(255, 255, 255, 0.08)"
                   vertical={true}
                   horizontal={true}
                 />
 
                 <XAxis
                   dataKey="day"
-                  stroke="#94a3b8"
+                  stroke="rgba(255, 255, 255, 0.3)"
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }}
+                  tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}
                 />
 
-                {/* YAxis on RIGHT matching Screenshot 2 */}
+                {/* YAxis on RIGHT matching reference layout */}
                 <YAxis
                   orientation="right"
-                  stroke="#94a3b8"
+                  stroke="rgba(255, 255, 255, 0.3)"
                   tickLine={false}
                   axisLine={false}
                   ticks={[0, 5, 10, 15]}
                   domain={[0, 16]}
-                  tick={{ fontSize: 12, fill: '#64748b', fontWeight: 500 }}
+                  tick={{ fontSize: 12, fill: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}
                 />
 
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       return (
-                        <div className="rounded-xl bg-slate-900 text-white px-3 py-1.5 shadow-xl text-xs">
+                        <div className="rounded-xl bg-zinc-900 border border-white/10 text-white px-3 py-1.5 shadow-2xl text-xs">
                           <span className="font-bold text-indigo-300">
                             {payload[0].value} puffs
                           </span>
@@ -208,12 +208,12 @@ export const ProgressView: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="puffs"
-                  stroke="#4338ca"
+                  stroke="#818cf8"
                   strokeWidth={3}
                   fillOpacity={1}
-                  fill="url(#purpleAreaGradientLight)"
-                  dot={{ r: 3.5, fill: '#4338ca', stroke: '#ffffff', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#6366f1', stroke: '#ffffff', strokeWidth: 2 }}
+                  fill="url(#purpleAreaGradientDark)"
+                  dot={{ r: 3.5, fill: '#818cf8', stroke: '#18181c', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#c7d2fe', stroke: '#18181c', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -221,66 +221,66 @@ export const ProgressView: React.FC = () => {
         </div>
       </div>
 
-      {/* Two Metric Cards Side-by-Side matching Screenshot 2 */}
+      {/* Two Metric Cards Side-by-Side in Dark Glass */}
       <div className="w-full grid grid-cols-2 gap-3.5 mb-6">
         {/* Lung Health Card */}
-        <div className="flex flex-col items-center justify-center p-5 rounded-[24px] bg-white border border-slate-100/80 shadow-[0_10px_30px_rgba(0,0,0,0.04)] text-center">
+        <div className="flex flex-col items-center justify-center p-5 rounded-[24px] bg-[#18181c]/85 border border-white/[0.08] backdrop-blur-xl shadow-xl text-center">
           {/* Terracotta/Peach Icon Circle */}
-          <div className="w-14 h-14 rounded-full bg-[#ffedd5] flex items-center justify-center mb-2.5">
-            {/* Solid Lungs Icon in warm terracotta */}
+          <div className="w-14 h-14 rounded-full bg-[#ea580c]/18 border border-[#ea580c]/30 flex items-center justify-center mb-2.5">
+            {/* Lungs Icon in warm terracotta */}
             <svg
-              className="w-7 h-7 text-[#ea580c]"
+              className="w-7 h-7 text-[#fb923c]"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
               <path d="M12 3c-.55 0-1 .45-1 1v4.2c-.67.4-1.25.96-1.7 1.62C7.8 10.3 5 11.5 5 15c0 3.86 3.14 7 7 7s7-3.14 7-7c0-3.5-2.8-4.7-4.3-5.18-.45-.66-1.03-1.22-1.7-1.62V4c0-.55-.45-1-1-1zm-1 8.5c.83 0 1.5.67 1.5 1.5v4.5c0 .83-.67 1.5-1.5 1.5S9.5 18.33 9.5 17.5V13c0-.83.67-1.5 1.5-1.5zm2 0c.83 0 1.5.67 1.5 1.5v4.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V13c0-.83.67-1.5 1.5-1.5z" />
             </svg>
           </div>
-          <span className="text-xs font-semibold text-slate-500">Lung Health</span>
-          <span className="text-base font-black tracking-wide text-[#c2410c] mt-1 uppercase">
+          <span className="text-xs font-semibold text-zinc-400">Lung Health</span>
+          <span className="text-base font-black tracking-wide text-[#fb923c] mt-1 uppercase drop-shadow-[0_0_8px_rgba(251,146,60,0.3)]">
             {lungHealth.status === 'None' ? 'MODERATE' : lungHealth.status.toUpperCase()}
           </span>
         </div>
 
         {/* Weekly Total Card */}
-        <div className="flex flex-col items-center justify-center p-5 rounded-[24px] bg-white border border-slate-100/80 shadow-[0_10px_30px_rgba(0,0,0,0.04)] text-center">
+        <div className="flex flex-col items-center justify-center p-5 rounded-[24px] bg-[#18181c]/85 border border-white/[0.08] backdrop-blur-xl shadow-xl text-center">
           {/* Lavender/Blue Icon Circle */}
-          <div className="w-14 h-14 rounded-full bg-[#e0e7ff] flex items-center justify-center mb-2.5">
+          <div className="w-14 h-14 rounded-full bg-[#6366f1]/18 border border-[#6366f1]/30 flex items-center justify-center mb-2.5">
             <div className="relative">
-              <Calendar className="w-7 h-7 text-[#4f46e5]" />
-              <Clock className="w-3.5 h-3.5 text-[#4f46e5] absolute -bottom-1 -right-1 bg-[#e0e7ff] rounded-full" />
+              <Calendar className="w-7 h-7 text-[#818cf8]" />
+              <Clock className="w-3.5 h-3.5 text-[#818cf8] absolute -bottom-1 -right-1 bg-[#18181c] rounded-full" />
             </div>
           </div>
-          <span className="text-xs font-semibold text-slate-500">Weekly Total</span>
-          <span className="text-2xl font-black tracking-tight text-[#312e81] mt-1">
+          <span className="text-xs font-semibold text-zinc-400">Weekly Total</span>
+          <span className="text-2xl font-black tracking-tight text-white mt-1 drop-shadow-sm">
             {weeklyTotal}
           </span>
         </div>
       </div>
 
-      {/* Daily Breakdown Section matching Screenshot 2 */}
+      {/* Daily Breakdown Section in Dark Glass */}
       <div className="w-full mb-6">
-        <h2 className="text-base font-bold text-slate-900 mb-3">Daily Breakdown</h2>
+        <h2 className="text-base font-bold text-white mb-3">Daily Breakdown</h2>
 
-        <div className="w-full rounded-[24px] bg-white border border-slate-100/80 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.04)] flex flex-col gap-3">
+        <div className="w-full rounded-[24px] bg-[#18181c]/85 border border-white/[0.08] backdrop-blur-xl p-5 shadow-xl flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">Today's Usage</span>
-            <span className="text-sm font-extrabold text-[#4338ca]">
+            <span className="text-xs font-semibold text-zinc-400">Today's Usage</span>
+            <span className="text-sm font-extrabold text-[#818cf8]">
               {todayCount > 0 ? todayCount : 13} puffs
             </span>
           </div>
 
-          {/* Progress bar matching Screenshot 2 */}
-          <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+          {/* Progress bar */}
+          <div className="w-full h-3 rounded-full bg-white/[0.08] overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#4338ca] to-[#6366f1] transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
               style={{
                 width: `${Math.min(100, Math.max(15, Math.round((todayCount / Math.max(1, currentLimit)) * 100)))}%`,
               }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 font-medium">
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1 font-medium">
             <span>Goal limit: {currentLimit}</span>
             <span>
               {Math.max(0, currentLimit - todayCount)} remaining
@@ -289,35 +289,35 @@ export const ProgressView: React.FC = () => {
         </div>
       </div>
 
-      {/* Dual Mode: Vape vs Cigarette Split */}
+      {/* Dual Mode: Vape vs Cigarette Split in Dark Glass */}
       <div className="w-full">
-        <h2 className="text-base font-bold text-slate-900 mb-3">Vape vs Cigarette Split</h2>
+        <h2 className="text-base font-bold text-white mb-3">Vape vs Cigarette Split</h2>
 
-        <div className="w-full rounded-[24px] bg-white border border-slate-100/80 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.04)] flex flex-col gap-3.5">
+        <div className="w-full rounded-[24px] bg-[#18181c]/85 border border-white/[0.08] backdrop-blur-xl p-5 shadow-xl flex flex-col gap-3.5">
           <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="p-3 rounded-2xl bg-indigo-50 border border-indigo-100">
-              <span className="text-[11px] text-indigo-700 font-bold uppercase tracking-wider block">
+            <div className="p-3 rounded-2xl bg-purple-600/15 border border-purple-500/20">
+              <span className="text-[11px] text-purple-300 font-bold uppercase tracking-wider block">
                 ⚡ Vape Hits
               </span>
-              <span className="text-2xl font-black text-indigo-900 mt-1 block">
+              <span className="text-2xl font-black text-white mt-1 block">
                 {todayVapeCount}
               </span>
             </div>
 
-            <div className="p-3 rounded-2xl bg-orange-50 border border-orange-100">
-              <span className="text-[11px] text-orange-700 font-bold uppercase tracking-wider block">
+            <div className="p-3 rounded-2xl bg-orange-600/15 border border-orange-500/20">
+              <span className="text-[11px] text-orange-300 font-bold uppercase tracking-wider block">
                 🚬 Cigarettes
               </span>
-              <span className="text-2xl font-black text-orange-900 mt-1 block">
+              <span className="text-2xl font-black text-white mt-1 block">
                 {todayCigCount}
               </span>
             </div>
           </div>
 
           {/* Ratio bar */}
-          <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden flex">
+          <div className="w-full h-2.5 rounded-full bg-zinc-800 overflow-hidden flex">
             <div
-              className="h-full bg-indigo-600 transition-all duration-300"
+              className="h-full bg-purple-500 transition-all duration-300"
               style={{
                 width: `${
                   todayVapeCount + todayCigCount > 0
@@ -338,12 +338,12 @@ export const ProgressView: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+          <div className="flex items-center justify-between text-[11px] text-zinc-400 font-medium">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-indigo-600" /> Vape Pod
+              <span className="w-2 h-2 rounded-full bg-purple-400" /> Vape Pod
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-orange-500" /> Cigarette
+              <span className="w-2 h-2 rounded-full bg-orange-400" /> Cigarette
             </span>
           </div>
         </div>

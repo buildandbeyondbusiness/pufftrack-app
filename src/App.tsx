@@ -104,14 +104,8 @@ const MainAppContent: React.FC = () => {
     }
   };
 
-  const isLightView = activeTab === 'statistics' || settings.theme === 'apple-light';
-
   return (
-    <div
-      className={`app-viewport relative flex flex-col justify-between min-h-screen font-sans overflow-hidden transition-colors duration-300 ${
-        isLightView ? 'bg-[#f8f9fe] text-slate-900' : 'bg-black text-white'
-      }`}
-    >
+    <div className="app-viewport relative flex flex-col justify-between min-h-screen bg-black text-white font-sans overflow-hidden">
       {/* Smooth Database Sync Opening Page */}
       {showSplashScreen && (
         <SyncSplashScreen onComplete={handleSplashComplete} />
@@ -141,7 +135,7 @@ const MainAppContent: React.FC = () => {
       </main>
 
       {/* Floating Bottom 5-Tab Navigation Bar */}
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} isLight={isLightView} />
+      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 };
