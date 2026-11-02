@@ -9,7 +9,7 @@ interface DailyPuffsViewProps {
   onOpenSettings?: () => void;
 }
 
-export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }) => {
+export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, onOpenSettings }) => {
   const {
     activeMode,
     setActiveMode,
@@ -24,6 +24,7 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
     addMultiplePuffs,
     vapeProfile,
     todayPuffs,
+    syncState,
   } = usePuff();
 
   const [activeInfoModal, setActiveInfoModal] = useState<string | null>(null);
@@ -115,11 +116,47 @@ export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }
 
   return (
     <div className="flex flex-col items-center w-full px-5 pb-6">
-      {/* Title */}
-      <div className="w-full flex items-center justify-center pt-1 pb-3">
+      {/* Title & SuperBase Live Status Pill */}
+      <div className="w-full flex items-center justify-between pt-1 pb-3">
         <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm">
           {isVape ? 'Daily Puffs' : 'Daily Smokes'}
         </h1>
+
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold transition-all cursor-pointer select-none"
+            title="Configure SuperBase"
+          >
+            <span className="relative flex h-2 w-2">
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  syncState === 'synced'
+                    ? 'bg-emerald-400'
+                    : syncState === 'syncing'
+                    ? 'bg-purple-400'
+                    : 'bg-zinc-400'
+                }`}
+              />
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${
+                  syncState === 'synced'
+                    ? 'bg-emerald-400'
+                    : syncState === 'syncing'
+                    ? 'bg-purple-400'
+                    : 'bg-zinc-400'
+                }`}
+              />
+            </span>
+            <span className="text-[11px] text-zinc-300 font-medium">
+              {syncState === 'synced'
+                ? 'SuperBase'
+                : syncState === 'syncing'
+                ? 'Syncing...'
+                : 'Local'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Sexy Apple-Style Glass Segmented Switcher (Vape vs Cigarette) */}

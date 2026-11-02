@@ -191,12 +191,15 @@ body {
 .app-viewport {
   max-width: 480px;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   position: relative;
   display: flex;
   flex-direction: column;
   background-color: var(--bg-primary);
+  /* Safe-area insets for iPhone Dynamic Island and home indicator */
+  padding-top: max(env(safe-area-inset-top, 0px), 54px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
 }
 
 @media (min-width: 640px) {
@@ -207,6 +210,7 @@ body {
     border: 1px solid var(--border-subtle);
     box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.8);
     overflow: hidden;
+    padding-top: 1.25rem;
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import type {
   PuffLog,
   Session,
@@ -328,6 +328,11 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => clearInterval(timer);
   }, []);
 
+  const puffsRef = useRef(puffs);
+  useEffect(() => {
+    puffsRef.current = puffs;
+  }, [puffs]);
+
   // Sync Logic with Supabase
   const performSupabaseSync = useCallback(async () => {
     setSyncState('syncing');
@@ -338,8 +343,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (!isConfigured) {
       setSyncStepMessage('Using Local Offline Cache');
-      // Artificial smooth opening splash delay for pristine Apple feel
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((r) => setTimeout(r, 400));
       setSyncState('local');
       setIsInitialSyncDone(true);
       return;
@@ -347,7 +351,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     try {
       setSyncStepMessage('Connecting to SuperBase Cloud...');
-      await new Promise((r) => setTimeout(r, 350));
+      await new Promise((r) => setTimeout(r, 200));
 
       // Test connection
       const connTest = await testSupabaseConnection();
@@ -359,11 +363,10 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      setSyncStepMessage('Synchronizing puff logs & telemetry...');
+      setSyncStepMessage('Synchronizing puff logs...');
       const cloudPuffs = await fetchUserPuffs(syncKey);
 
       if (cloudPuffs && cloudPuffs.length > 0) {
-        // Merge cloud with local
         setPuffs((currentLocal) => {
           const map = new Map<string, PuffLog>();
           currentLocal.forEach((p) => map.set(p.id, p));
@@ -371,11 +374,11 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
         });
       } else {
-        // Push local puffs to cloud so user never loses their data
-        const localToUpload = puffs.slice(0, 30);
-        for (const p of localToUpload) {
-          await syncSavePuff(syncKey, p);
-        }
+        // Upload sample to cloud in the background without blocking the UI
+        setTimeout(() => {
+          const localToUpload = puffsRef.current.slice(0, 5);
+          localToUpload.forEach((p) => syncSavePuff(syncKey, p));
+        }, 1000);
       }
 
       setSyncStepMessage('Restoring profile & settings...');
@@ -393,7 +396,6 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       setSyncStepMessage('Database Synced');
-      await new Promise((r) => setTimeout(r, 400));
       setSyncState('synced');
       setIsInitialSyncDone(true);
     } catch (err: any) {
@@ -402,7 +404,7 @@ export const PuffProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSyncState('error');
       setIsInitialSyncDone(true);
     }
-  }, [syncKey, puffs]);
+  }, [syncKey]);
 
   // Initial Sync on mount
   useEffect(() => {

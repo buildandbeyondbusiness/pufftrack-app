@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PuffProvider, usePuff } from './context/PuffContext';
 import { Navigation } from './components/Navigation';
 import type { TabType } from './components/Navigation';
@@ -8,7 +8,6 @@ import { PlanView } from './components/PlanView';
 import { HistoryView } from './components/HistoryView';
 import { SettingsView } from './components/SettingsView';
 import { SyncSplashScreen } from './components/SyncSplashScreen';
-import { DynamicIslandStatus } from './components/DynamicIslandStatus';
 import { VaporCanvas } from './components/VaporCanvas';
 import type { VaporCanvasRef } from './components/VaporCanvas';
 import { MacOSNotification } from './components/MacOSNotification';
@@ -20,6 +19,10 @@ const MainAppContent: React.FC = () => {
   const [macNotification, setMacNotification] = useState<ToastMessage | null>(null);
   const { settings, addPuff, todayCount, currentLimit } = usePuff();
   const vaporRef = useRef<VaporCanvasRef | null>(null);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplashScreen(false);
+  }, []);
 
   useEffect(() => {
     document.body.className = `theme-${settings.theme}`;
@@ -105,7 +108,7 @@ const MainAppContent: React.FC = () => {
     <div className="app-viewport relative flex flex-col justify-between min-h-screen bg-black text-white font-sans overflow-hidden">
       {/* Smooth Database Sync Opening Page */}
       {showSplashScreen && (
-        <SyncSplashScreen onComplete={() => setShowSplashScreen(false)} />
+        <SyncSplashScreen onComplete={handleSplashComplete} />
       )}
 
       {/* macOS Sequoia Dropdown Notification Banner */}
@@ -116,9 +119,6 @@ const MainAppContent: React.FC = () => {
 
       {/* Vapor Canvas Particles Overlay */}
       <VaporCanvas ref={vaporRef} enabled={settings.vaporEffectsEnabled} />
-
-      {/* Dynamic Island Status Pill at Top */}
-      <DynamicIslandStatus onOpenSettings={() => setActiveTab('settings')} />
 
       {/* Main View Area */}
       <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-2 pb-28">
