@@ -3,21 +3,22 @@ import { PuffProvider, usePuff } from './context/PuffContext';
 import { Navigation } from './components/Navigation';
 import type { TabType } from './components/Navigation';
 import { DailyPuffsView } from './components/DailyPuffsView';
-import { ModelsView } from './components/ModelsView';
 import { ProgressView } from './components/ProgressView';
+import { PlanView } from './components/PlanView';
 import { HistoryView } from './components/HistoryView';
-import { ProfileModal } from './components/ProfileModal';
+import { SettingsView } from './components/SettingsView';
+import { SyncSplashScreen } from './components/SyncSplashScreen';
+import { DynamicIslandStatus } from './components/DynamicIslandStatus';
 import { VaporCanvas } from './components/VaporCanvas';
 import type { VaporCanvasRef } from './components/VaporCanvas';
 import { MacOSNotification } from './components/MacOSNotification';
 import type { ToastMessage } from './components/MacOSNotification';
-import { syncSavePuff } from './firebase/service';
 
 const MainAppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<TabType>('daily');
+  const [showSplashScreen, setShowSplashScreen] = useState<boolean>(true);
   const [macNotification, setMacNotification] = useState<ToastMessage | null>(null);
-  const { settings, addPuff, todayCount, currentLimit, user } = usePuff();
+  const { settings, addPuff, todayCount, currentLimit } = usePuff();
   const vaporRef = useRef<VaporCanvasRef | null>(null);
 
   useEffect(() => {
@@ -28,18 +29,8 @@ const MainAppContent: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('action') === 'puff' || params.get('hit') === '1') {
-      const targetUid = params.get('key') || params.get('uid') || user?.uid;
       const now = Date.now();
-      const newPuff = {
-        id: `puff-${now}-${Math.random().toString(36).substr(2, 4)}`,
-        timestamp: now,
-      };
-
-      if (targetUid) {
-        syncSavePuff(targetUid, newPuff);
-      } else {
-        addPuff();
-      }
+      addPuff();
 
       if (vaporRef.current && settings.vaporEffectsEnabled) {
         vaporRef.current.emitPuff(undefined, undefined, 35);
@@ -47,14 +38,14 @@ const MainAppContent: React.FC = () => {
       setMacNotification({
         id: `backtap-${now}`,
         title: 'iPhone Back Tap Registered',
-        subtitle: `Puff logged & synced to Cloud.`,
+        subtitle: 'Puff logged & synced to SuperBase Cloud.',
         type: 'success',
       });
 
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, [addPuff, settings.vaporEffectsEnabled, todayCount, user]);
+  }, [addPuff, settings.vaporEffectsEnabled]);
 
   // Handle Spacebar Trigger
   useEffect(() => {
@@ -111,7 +102,12 @@ const MainAppContent: React.FC = () => {
   };
 
   return (
-    <div className="app-viewport relative flex flex-col justify-between min-h-screen">
+    <div className="app-viewport relative flex flex-col justify-between min-h-screen bg-black text-white font-sans overflow-hidden">
+      {/* Smooth Database Sync Opening Page */}
+      {showSplashScreen && (
+        <SyncSplashScreen onComplete={() => setShowSplashScreen(false)} />
+      )}
+
       {/* macOS Sequoia Dropdown Notification Banner */}
       <MacOSNotification
         notification={macNotification}
@@ -121,26 +117,24 @@ const MainAppContent: React.FC = () => {
       {/* Vapor Canvas Particles Overlay */}
       <VaporCanvas ref={vaporRef} enabled={settings.vaporEffectsEnabled} />
 
-      {/* Main View Area with native Apple safe-area padding */}
-      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-[calc(env(safe-area-inset-top,20px)+12px)] pb-32">
-        {activeTab === 'home' && (
+      {/* Dynamic Island Status Pill at Top */}
+      <DynamicIslandStatus onOpenSettings={() => setActiveTab('settings')} />
+
+      {/* Main View Area */}
+      <main className="flex-1 w-full overflow-y-auto z-10 scrollbar-none pt-2 pb-28">
+        {activeTab === 'daily' && (
           <DailyPuffsView
             onTriggerVapor={handleTriggerVapor}
-            onOpenProfile={() => setShowProfileModal(true)}
+            onOpenSettings={() => setActiveTab('settings')}
           />
         )}
-        {activeTab === 'models' && <ModelsView />}
-        {activeTab === 'analytics' && <ProgressView />}
+        {activeTab === 'plan' && <PlanView />}
         {activeTab === 'history' && <HistoryView />}
+        {activeTab === 'statistics' && <ProgressView />}
+        {activeTab === 'settings' && <SettingsView />}
       </main>
 
-      {/* Profile & Settings Apple Sheet Modal */}
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
-
-      {/* Bottom Navigation Bar */}
+      {/* Floating Bottom 5-Tab Navigation Bar */}
       <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );

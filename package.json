@@ -14,8 +14,8 @@
     "pages:dev": "wrangler pages dev dist"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
     "canvas-confetti": "^1.9.4",
-    "firebase": "^12.17.1",
     "lucide-react": "^1.31.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -33,6 +33,7 @@
     "sharp": "^0.35.3",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "wrangler": "^4.156.2"
   }
 }

@@ -132,6 +132,64 @@ class SoundManager {
   }
 
   /**
+   * Generates a realistic cigarette lighter flint strike + ember sizzle sound effect.
+   */
+  public playCigaretteSound(enabled: boolean = true) {
+    if (!enabled) return;
+    try {
+      const ctx = this.getContext();
+      const now = ctx.currentTime;
+
+      // 1. Sharp metallic flint wheel strike
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(2400, now);
+      osc.frequency.exponentialRampToValueAtTime(300, now + 0.06);
+
+      const oscGain = ctx.createGain();
+      oscGain.gain.setValueAtTime(0.3, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+
+      // 2. Soft crackling ember sizzle noise
+      const bufferSize = ctx.sampleRate * 0.35;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        // intermittent tiny clicks for burning tobacco leaf crackle
+        data[i] = Math.random() > 0.85 ? (Math.random() * 2 - 1) * 1.5 : (Math.random() * 0.2 - 0.1);
+      }
+
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1600, now + 0.05);
+      filter.frequency.exponentialRampToValueAtTime(800, now + 0.35);
+      filter.Q.value = 4.0;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      noise.start(now + 0.04);
+      noise.stop(now + 0.35);
+    } catch (e) {
+      console.warn('Audio playback error', e);
+    }
+  }
+
+  /**
    * Celebration achievement chord
    */
   public playCelebrateSound(enabled: boolean = true) {

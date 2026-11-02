@@ -1,29 +1,55 @@
-interface Env {}
+interface Env {
+  SUPABASE_URL?: string;
+  SUPABASE_ANON_KEY?: string;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
 };
 
-const saveToFirebaseFirestore = async (key: string, timestamp: number, mood?: string | null) => {
-  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/draw-2b7a5/databases/(default)/documents/users/${encodeURIComponent(key)}/puffs`;
+const saveToSupabase = async (
+  key: string,
+  timestamp: number,
+  mood: string | null,
+  note: string | null,
+  env?: Env
+) => {
+  const rawUrl = env?.SUPABASE_URL || 'https://rhefptyiixgsmryayidb.supabase.co';
+  const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+  const apiKey = env?.SUPABASE_ANON_KEY || 'sb_publishable_dTjkWJcUftyYf9BaC59z3A_ozYlT0GY';
+
+  const endpoint = `${cleanUrl}/rest/v1/puffs`;
+  const puffId = `hit-${timestamp}-${Math.random().toString(36).substring(2, 7)}`;
+
   const body = {
-    fields: {
-      timestamp: { integerValue: String(timestamp) },
-      createdAt: { stringValue: new Date(timestamp).toISOString() },
-      mood: mood ? { stringValue: mood } : { nullValue: null },
-    },
+    id: puffId,
+    user_id: key,
+    timestamp,
+    mood: mood || 'Habit',
+    note: note || null,
+    created_at: new Date(timestamp).toISOString(),
   };
 
   try {
-    await fetch(firestoreUrl, {
+    const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        apikey: apiKey,
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
       body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn('[Action Button Supabase Error]', errText);
+    }
   } catch (err: any) {
-    console.error('[Cloudflare Firestore Write Error]', err?.message);
+    console.error('[Action Button Supabase Exception]', err?.message);
   }
 };
 
@@ -32,40 +58,47 @@ export const onRequestOptions: PagesFunction<Env> = async () => {
 };
 
 export const onRequest: PagesFunction<Env> = async (context) => {
-  const { request, waitUntil } = context;
+  const { request, waitUntil, env } = context;
   const url = new URL(request.url);
 
   let key = url.searchParams.get('key') || 'default-device';
   let mood = url.searchParams.get('mood') || null;
+  let type = url.searchParams.get('type') || 'vape';
 
   if (request.method === 'POST') {
     try {
       const json: any = await request.json();
       if (json.key) key = json.key;
       if (json.mood) mood = json.mood;
-    } catch (e) {
+      if (json.type) type = json.type;
+    } catch {
       // fallback to query params
     }
   }
 
   const now = Date.now();
+  const puffId = `action-${now}-${Math.random().toString(36).substring(2, 6)}`;
   const newPuff = {
-    id: `cf-${now}-${Math.random().toString(36).substring(2, 6)}`,
+    id: puffId,
     timestamp: now,
-    mood: mood || undefined,
+    mood: mood || (type === 'cigarette' ? 'Cigarette' : 'Habit'),
+    type: type as any,
   };
 
-  // Asynchronous edge write via waitUntil (0ms blocking for iOS shortcuts)
+  const noteVal = type === 'cigarette' ? '[cigarette]' : null;
+
+  // Asynchronous edge write via waitUntil (instant 0ms response to iPhone Action button)
   if (waitUntil) {
-    waitUntil(saveToFirebaseFirestore(key, now, mood));
+    waitUntil(saveToSupabase(key, now, mood, noteVal, env));
   } else {
-    saveToFirebaseFirestore(key, now, mood);
+    await saveToSupabase(key, now, mood, noteVal, env);
   }
 
   return new Response(
     JSON.stringify({
       success: true,
-      provider: 'cloudflare-edge',
+      provider: 'superbase-edge',
+      action: 'puff_logged',
       puff: newPuff,
       timestamp: now,
     }),

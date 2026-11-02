@@ -1,592 +1,513 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePuff } from '../context/PuffContext';
-import {
-  Plus,
-  Minus,
-  Clock,
-  User,
-  Activity,
-  ChevronRight,
-  X,
-  AlertTriangle
-} from 'lucide-react';
+import { Plus, Minus, Info, X, Zap, Flame } from 'lucide-react';
 import type { MoodTag } from '../types';
-import {
-  NicotineMoleculeIcon,
-  SessionTimerIcon,
-  SparkHitIcon
-} from './icons/AppIcons';
+import { AnimatedDeviceFigure } from './AnimatedDeviceFigure';
 
 interface DailyPuffsViewProps {
   onTriggerVapor: (e?: React.MouseEvent) => void;
-  onOpenProfile: () => void;
+  onOpenSettings?: () => void;
 }
 
-export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor, onOpenProfile }) => {
+export const DailyPuffsView: React.FC<DailyPuffsViewProps> = ({ onTriggerVapor }) => {
   const {
+    activeMode,
+    setActiveMode,
     todayCount,
     currentLimit,
     todayNicotineMg,
     todaySessionsCount,
     todayVapingTimeSeconds,
     timeSinceLastPuffSeconds,
-    vapeProfile,
     addPuff,
     undoLastPuff,
     addMultiplePuffs,
+    vapeProfile,
     todayPuffs,
-    user,
-    isCloudSyncing,
-    averageBreakMinutes,
-    todayCost,
-    nicotinePerPuffMg,
-    isLiveSessionRunning,
-    liveSessionSeconds,
-    liveSessionPuffs,
-    startLiveSession,
-    stopLiveSession,
   } = usePuff();
 
-  const [selectedMood, setSelectedMood] = useState<MoodTag | null>(null);
-  const [showMoodSelector, setShowMoodSelector] = useState<boolean>(false);
+  const [activeInfoModal, setActiveInfoModal] = useState<string | null>(null);
   const [showQuickHitFlyout, setShowQuickHitFlyout] = useState<boolean>(false);
-  const [showNicSheet, setShowNicSheet] = useState<boolean>(false);
-  const [showSessionModal, setShowSessionModal] = useState<boolean>(false);
-  const [isPuffing, setIsPuffing] = useState<boolean>(false);
-  const [isAuraBlooming, setIsAuraBlooming] = useState<boolean>(false);
+  const [selectedMood, setSelectedMood] = useState<MoodTag | null>(null);
+  const [isPressingPlus, setIsPressingPlus] = useState<boolean>(false);
+  const [isPressingMinus, setIsPressingMinus] = useState<boolean>(false);
 
-  // Format Time Since Last Puff
-  const formatTimeSinceLastHit = (totalSeconds: number) => {
-    if (todayPuffs.length === 0) return 'None yet';
-    if (totalSeconds < 60) return 'Just now';
-    const mins = Math.floor(totalSeconds / 60);
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    return `${hours}h ago`;
-  };
+  const isVape = activeMode === 'vape';
 
-  // Format Vaping Duration Today
-  const formatVapingDuration = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+  // Live timer for Vape-Free / Smoke-Free duration
+  const cleanTimerFormatted = useMemo(() => {
+    if (todayPuffs.length === 0) return '0h 0m 0s';
+    const totalSecs = timeSinceLastPuffSeconds;
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return `${hours}h ${mins}m ${secs}s`;
+  }, [timeSinceLastPuffSeconds, todayPuffs.length]);
+
+  // Vaping time formatted: "2m 5s"
+  const vapingTimeFormatted = useMemo(() => {
+    const mins = Math.floor(todayVapingTimeSeconds / 60);
+    const secs = todayVapingTimeSeconds % 60;
     return `${mins}m ${secs}s`;
-  };
+  }, [todayVapingTimeSeconds]);
 
-  const isOverLimit = todayCount >= currentLimit;
+  // Cigarettes pack calculation
+  const cigsLeftInPack = useMemo(() => {
+    const perPack = vapeProfile.cigsPerPack || 20;
+    const remainder = todayCount % perPack;
+    return Math.max(0, perPack - remainder);
+  }, [todayCount, vapeProfile.cigsPerPack]);
 
-  // Orchestrated Apple-esque Puff Sequence
+  // Radial Ticks Configuration
+  // 60 ticks for Vape, 20 ticks for Cigarette (representing 20 sticks per pack!)
+  const TOTAL_TICKS = isVape ? 60 : 20;
+  const activeTicksCount = useMemo(() => {
+    const ratio = Math.min(1, todayCount / Math.max(1, currentLimit));
+    return Math.round(ratio * TOTAL_TICKS);
+  }, [todayCount, currentLimit, TOTAL_TICKS]);
+
+  const ticks = useMemo(() => {
+    const list = [];
+    const cx = 150;
+    const cy = 150;
+    const rInner = 108;
+    const rOuter = 132;
+
+    for (let i = 0; i < TOTAL_TICKS; i++) {
+      // Start at top (-90 degrees)
+      const angleDeg = (i * 360) / TOTAL_TICKS - 90;
+      const angleRad = (angleDeg * Math.PI) / 180;
+
+      const x1 = cx + rInner * Math.cos(angleRad);
+      const y1 = cy + rInner * Math.sin(angleRad);
+      const x2 = cx + rOuter * Math.cos(angleRad);
+      const y2 = cy + rOuter * Math.sin(angleRad);
+
+      const isActive = i < activeTicksCount;
+
+      list.push({
+        index: i,
+        x1,
+        y1,
+        x2,
+        y2,
+        isActive,
+      });
+    }
+    return list;
+  }, [TOTAL_TICKS, activeTicksCount]);
+
+  // Handle Main Puff / Cigarette Trigger
   const handlePuffClick = (e: React.MouseEvent) => {
-    // Stage 1: Inhale / Ignition Compression
-    setIsPuffing(true);
-    setIsAuraBlooming(true);
-
-    // Stage 2: Volumetric Vapor Plume Eruption
+    setIsPressingPlus(true);
     onTriggerVapor(e);
     addPuff(selectedMood || undefined);
-
-    // Stage 3: Spring Release
-    setTimeout(() => setIsPuffing(false), 250);
-    setTimeout(() => setIsAuraBlooming(false), 1200);
+    setTimeout(() => setIsPressingPlus(false), 220);
   };
 
-  const handleQuickAdd = (count: number) => {
-    setIsPuffing(true);
-    setIsAuraBlooming(true);
-    addMultiplePuffs(count);
-    onTriggerVapor();
-    setShowQuickHitFlyout(false);
-    setTimeout(() => setIsPuffing(false), 250);
-    setTimeout(() => setIsAuraBlooming(false), 1200);
+  const handleMinusClick = () => {
+    setIsPressingMinus(true);
+    undoLastPuff();
+    setTimeout(() => setIsPressingMinus(false), 200);
   };
 
-  // Sunburst / Radiant notch ticks generation for the SVG radial meter
-  const TOTAL_TICKS = 40;
-  const activeTicksCount = Math.min(TOTAL_TICKS, Math.round((todayCount / Math.max(1, currentLimit)) * TOTAL_TICKS));
-  const moodList: MoodTag[] = ['Morning', 'Stress', 'Habit', 'Social', 'Post Meal', 'Boredom', 'Craving'];
+  const moodsList: MoodTag[] = ['Morning', 'Stress', 'Habit', 'Social', 'Post Meal', 'Boredom', 'Craving'];
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-12 pt-1 relative">
-      {/* Top Header with Profile / Settings Button (Matching Sketch "Profile also opens settings") */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">
-            Today
-          </h1>
-          <p className="text-xs text-[var(--text-muted)] font-medium">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
-          </p>
-        </div>
-
-        {/* Profile & Settings Trigger */}
-        <button
-          onClick={onOpenProfile}
-          title="Profile & Settings"
-          className="flex items-center gap-2 rounded-full bg-[var(--bg-card)] border border-[var(--border-subtle)] p-1.5 pr-3 shadow-lg hover:border-[var(--accent-purple)] transition-all cursor-pointer group active:scale-95"
-        >
-          {user?.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt="Avatar"
-              className="h-7 w-7 rounded-full border border-[var(--accent-purple)]"
-            />
-          ) : (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bg-accent-pill)] text-[var(--accent-purple)]">
-              <User className="h-4 w-4" />
-            </div>
-          )}
-          <div className="flex flex-col text-left">
-            <span className="text-[11px] font-bold text-[var(--text-main)] max-w-[80px] truncate">
-              {user?.displayName?.split(' ')[0] || 'Account'}
-            </span>
-            <span className="text-[9px] text-[var(--text-muted)] flex items-center gap-1">
-              <span className={`h-1.5 w-1.5 rounded-full ${user ? (isCloudSyncing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400') : 'bg-zinc-500'}`} />
-              Settings
-            </span>
-          </div>
-        </button>
+    <div className="flex flex-col items-center w-full px-5 pb-6">
+      {/* Title */}
+      <div className="w-full flex items-center justify-center pt-1 pb-3">
+        <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-sm">
+          {isVape ? 'Daily Puffs' : 'Daily Smokes'}
+        </h1>
       </div>
 
-      {/* Apple Fitness 3 Nested Activity Rings Summary */}
-      <div className={`glass-panel p-4 flex items-center justify-between transition-all duration-500 ${
-        isAuraBlooming ? 'border-[var(--accent-purple)] shadow-[0_0_20px_var(--accent-purple-glow)]' : ''
-      }`}>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent-pink)]" />
-            <span className="text-xs font-semibold text-[var(--text-main)]">{todayCount} / {currentLimit} Puffs</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent-green)]" />
-            <span className="text-xs font-semibold text-[var(--text-main)]">{todayNicotineMg} mg Nicotine</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent-cyan)]" />
-            <span className="text-xs font-semibold text-[var(--text-main)]">{todaySessionsCount} Sessions ({formatVapingDuration(todayVapingTimeSeconds)})</span>
-          </div>
-        </div>
-
-        {/* 3 Activity Rings */}
-        <div className="relative flex items-center justify-center h-20 w-20">
-          <svg className="h-20 w-20 transform -rotate-90">
-            {/* Outer Pink (Puffs) */}
-            <circle cx="40" cy="40" r="34" stroke="rgba(255, 55, 95, 0.18)" strokeWidth="5.5" fill="transparent" />
-            <circle
-              cx="40"
-              cy="40"
-              r="34"
-              stroke="#ff375f"
-              strokeWidth="5.5"
-              strokeDasharray={2 * Math.PI * 34}
-              strokeDashoffset={(2 * Math.PI * 34) * (1 - Math.min(1, todayCount / Math.max(1, currentLimit)))}
-              strokeLinecap="round"
-              fill="transparent"
-              className="transition-all duration-700 ease-out"
-            />
-
-            {/* Middle Green (Nicotine) */}
-            <circle cx="40" cy="40" r="25" stroke="rgba(48, 209, 88, 0.18)" strokeWidth="5.5" fill="transparent" />
-            <circle
-              cx="40"
-              cy="40"
-              r="25"
-              stroke="#30d158"
-              strokeWidth="5.5"
-              strokeDasharray={2 * Math.PI * 25}
-              strokeDashoffset={(2 * Math.PI * 25) * (1 - Math.min(1, todayNicotineMg / 25))}
-              strokeLinecap="round"
-              fill="transparent"
-              className="transition-all duration-700 ease-out"
-            />
-
-            {/* Inner Cyan (Sessions) */}
-            <circle cx="40" cy="40" r="16" stroke="rgba(100, 210, 255, 0.18)" strokeWidth="5.5" fill="transparent" />
-            <circle
-              cx="40"
-              cy="40"
-              r="16"
-              stroke="#64d2ff"
-              strokeWidth="5.5"
-              strokeDasharray={2 * Math.PI * 16}
-              strokeDashoffset={(2 * Math.PI * 16) * (1 - Math.min(1, todaySessionsCount / 8))}
-              strokeLinecap="round"
-              fill="transparent"
-              className="transition-all duration-700 ease-out"
-            />
-          </svg>
-        </div>
-      </div>
-
-      {/* Main Radiant Sunburst Gauge with Animated Puff Sequence */}
-      <div className={`glass-panel p-6 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500 ${
-        isAuraBlooming ? 'ring-2 ring-cyan-400/40 shadow-2xl shadow-cyan-500/20' : ''
-      }`}>
-        {/* Dynamic Atmospheric Light Bloom Aura */}
+      {/* Sexy Apple-Style Glass Segmented Switcher (Vape vs Cigarette) */}
+      <div className="relative flex items-center p-1 rounded-full bg-[#121214]/90 border border-white/10 backdrop-blur-2xl shadow-xl select-none mb-5">
+        {/* Sliding active pill indicator */}
         <div
-          className={`absolute h-56 w-56 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
-            isAuraBlooming
-              ? 'bg-cyan-400 opacity-60 scale-125'
-              : isOverLimit
-              ? 'bg-red-600 opacity-40'
-              : 'bg-[var(--accent-purple)] opacity-25'
+          className={`absolute top-1 bottom-1 rounded-full transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-md ${
+            isVape
+              ? 'left-1 w-[calc(50%-4px)] bg-gradient-to-r from-purple-600 to-indigo-600 shadow-purple-500/40'
+              : 'left-[calc(50%)] w-[calc(50%-4px)] bg-gradient-to-r from-orange-600 to-red-600 shadow-orange-500/40'
           }`}
         />
 
-        <div className={`relative flex items-center justify-center h-64 w-64 transition-transform duration-300 ${
-          isPuffing ? 'scale-95' : 'scale-100'
-        }`}>
-          {/* Sunburst radiant rays SVG with firing animation */}
-          <svg className="h-full w-full transform rotate-135" viewBox="0 0 200 200">
-            {Array.from({ length: TOTAL_TICKS }).map((_, index) => {
-              const angle = (index / (TOTAL_TICKS - 1)) * 270;
-              const angleRad = (angle * Math.PI) / 180;
-              const isActive = index < activeTicksCount;
+        {/* Vape Mode Pill */}
+        <button
+          onClick={() => setActiveMode('vape')}
+          className={`relative z-10 flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            isVape ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Zap className={`w-3.5 h-3.5 ${isVape ? 'text-purple-200 animate-pulse' : 'text-zinc-500'}`} />
+          <span>Vape Pod</span>
+        </button>
 
-              const innerR = 72;
-              const outerR = isActive && isAuraBlooming ? 92 : 88;
-              const cx = 100;
-              const cy = 100;
+        {/* Cigarette Mode Pill */}
+        <button
+          onClick={() => setActiveMode('cigarette')}
+          className={`relative z-10 flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+            !isVape ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Flame className={`w-3.5 h-3.5 ${!isVape ? 'text-amber-200 animate-pulse' : 'text-zinc-500'}`} />
+          <span>Cigarette</span>
+        </button>
+      </div>
 
-              const x1 = cx + innerR * Math.cos(angleRad);
-              const y1 = cy + innerR * Math.sin(angleRad);
-              const x2 = cx + outerR * Math.cos(angleRad);
-              const y2 = cy + outerR * Math.sin(angleRad);
+      {/* 4 Top Metric Cards (2x2 Grid) */}
+      <div className="w-full grid grid-cols-2 gap-3 mb-4">
+        {/* Card 1: Nicotine */}
+        <div
+          onClick={() => setActiveInfoModal('nicotine')}
+          className="relative flex flex-col justify-between p-4 rounded-2xl bg-[#1c1c1e]/80 hover:bg-[#252528]/80 border border-white/[0.08] backdrop-blur-xl shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98]"
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-[13px] font-medium transition-colors ${
+                isVape ? 'text-purple-300' : 'text-orange-300'
+              }`}
+            >
+              Nicotine
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveInfoModal('nicotine');
+              }}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-extrabold tracking-tight text-white">
+              {todayNicotineMg} mg
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Sessions or Sticks Count */}
+        <div
+          onClick={() => setActiveInfoModal('sessions')}
+          className="relative flex flex-col justify-between p-4 rounded-2xl bg-[#1c1c1e]/80 hover:bg-[#252528]/80 border border-white/[0.08] backdrop-blur-xl shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98]"
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-[13px] font-medium transition-colors ${
+                isVape ? 'text-purple-300' : 'text-orange-300'
+              }`}
+            >
+              {isVape ? 'Sessions' : 'Sticks Left'}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveInfoModal('sessions');
+              }}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-extrabold tracking-tight text-white">
+              {isVape ? todaySessionsCount : `${cigsLeftInPack}/20`}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Vape-Free / Smoke-Free */}
+        <div
+          onClick={() => setActiveInfoModal('vapeFree')}
+          className="relative flex flex-col justify-between p-4 rounded-2xl bg-[#1c1c1e]/80 hover:bg-[#252528]/80 border border-white/[0.08] backdrop-blur-xl shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98]"
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-[13px] font-medium transition-colors ${
+                isVape ? 'text-purple-300' : 'text-orange-300'
+              }`}
+            >
+              {isVape ? 'Vape-Free' : 'Smoke-Free'}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveInfoModal('vapeFree');
+              }}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3">
+            <span className="text-xl font-extrabold tracking-tight text-[#f59e0b] drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+              {cleanTimerFormatted}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 4: Vaping Time / Cost */}
+        <div
+          onClick={() => setActiveInfoModal('vapingTime')}
+          className="relative flex flex-col justify-between p-4 rounded-2xl bg-[#1c1c1e]/80 hover:bg-[#252528]/80 border border-white/[0.08] backdrop-blur-xl shadow-lg transition-all duration-200 cursor-pointer active:scale-[0.98]"
+        >
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-[13px] font-medium transition-colors ${
+                isVape ? 'text-purple-300' : 'text-orange-300'
+              }`}
+            >
+              {isVape ? 'Vaping Time' : 'Cost Today'}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveInfoModal('vapingTime');
+              }}
+              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl font-extrabold tracking-tight text-white">
+              {isVape ? vapingTimeFormatted : `₹${Math.round(todayCount * 18)}`}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Center Circular Radial Tick Dial with Animated Figure */}
+      <div className="relative flex flex-col items-center justify-center my-3">
+        {/* Ambient atmospheric glow behind dial */}
+        <div
+          className={`absolute w-64 h-64 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
+            isVape ? 'bg-purple-600/18' : 'bg-orange-600/20'
+          }`}
+        />
+
+        <div className="relative w-[300px] h-[300px] flex items-center justify-center">
+          <svg className="w-full h-full" viewBox="0 0 300 300">
+            {ticks.map((tick) => {
+              const activeStroke = isVape ? '#c084fc' : '#f97316';
+              const activeGlow = isVape
+                ? 'drop-shadow(0 0 7px rgba(192, 132, 252, 0.95))'
+                : 'drop-shadow(0 0 8px rgba(249, 115, 22, 0.95))';
 
               return (
                 <line
-                  key={index}
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={
-                    isActive
-                      ? isOverLimit
-                        ? '#ff453a'
-                        : isAuraBlooming
-                        ? '#38bdf8'
-                        : 'var(--accent-purple)'
-                      : 'rgba(255,255,255,0.12)'
-                  }
-                  strokeWidth={isActive ? (isAuraBlooming ? '4.5' : '3.5') : '1.8'}
+                  key={tick.index}
+                  x1={tick.x1}
+                  y1={tick.y1}
+                  x2={tick.x2}
+                  y2={tick.y2}
+                  stroke={tick.isActive ? activeStroke : 'rgba(255, 255, 255, 0.12)'}
+                  strokeWidth={isVape ? '3.5' : '4.5'}
                   strokeLinecap="round"
                   className="transition-all duration-300"
+                  style={{
+                    filter: tick.isActive ? activeGlow : 'none',
+                  }}
                 />
               );
             })}
           </svg>
 
-          {/* Central Radial Content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Puffs today
-            </span>
-
-            <div className="my-1 flex items-baseline justify-center gap-1">
-              <span
-                className={`text-5xl font-black tracking-tight transition-all duration-300 ${
-                  isAuraBlooming
-                    ? 'text-cyan-300 scale-110 drop-shadow-[0_0_15px_#38bdf8]'
-                    : isOverLimit
-                    ? 'text-red-500 animate-pulse'
-                    : 'text-[var(--text-main)]'
-                }`}
-              >
-                {todayCount}
-              </span>
-              <span className="text-xl font-bold text-[var(--text-muted)]">
-                /{currentLimit}
-              </span>
+          {/* Center Content: Animated Figure + Counter */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            {/* Animated Device Figure (Morphs btw Pod and Cigarette) */}
+            <div className="mb-0.5">
+              <AnimatedDeviceFigure mode={activeMode} isPuffing={isPressingPlus} />
             </div>
 
-            {/* Last Hit Pill Badge (Directly from Sketch) */}
-            {isOverLimit ? (
-              <div className="flex items-center gap-1 rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-400 border border-red-500/30">
-                <AlertTriangle className="h-3 w-3" />
-                <span>Over Limit</span>
-              </div>
-            ) : (
-              <div className={`rounded-full px-3 py-1 text-xs font-semibold border transition-all duration-500 flex items-center gap-1.5 shadow-sm ${
-                isAuraBlooming
-                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 scale-105'
-                  : 'bg-[var(--bg-accent-pill)] border-[var(--border-subtle)] text-[var(--text-muted)]'
-              }`}>
-                <Clock className="h-3 w-3 text-[var(--accent-purple)]" />
-                <span>Last Hit:</span>
-                <span className="text-[var(--text-main)] font-bold">
-                  {formatTimeSinceLastHit(timeSinceLastPuffSeconds)}
-                </span>
-              </div>
-            )}
+            <span className="text-xs font-semibold text-zinc-400 tracking-wider uppercase mt-1">
+              {isVape ? 'Puffs today' : 'Smokes today'}
+            </span>
+            <span className="text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
+              {todayCount}
+            </span>
+            <div className="mt-2.5 px-3.5 py-1 rounded-full bg-[#1c1c1e]/90 border border-white/10 shadow-inner">
+              <span className="text-xs text-zinc-400 font-medium">
+                {isVape ? 'Limit for today' : 'Daily limit'}{' '}
+                <span className="text-white font-bold">{currentLimit}</span>
+              </span>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Trigger Mood Tag selector */}
-        <div className="mt-1 w-full flex flex-col items-center">
+      {/* Mood Tag Filter Pill Bar */}
+      <div className="w-full flex items-center justify-center gap-1.5 overflow-x-auto py-2 mb-2 scrollbar-none">
+        {moodsList.slice(0, 5).map((m) => (
           <button
-            onClick={() => setShowMoodSelector(!showMoodSelector)}
-            className="text-xs text-[var(--accent-purple)] hover:underline font-semibold cursor-pointer"
+            key={m}
+            onClick={() => setSelectedMood(selectedMood === m ? null : m)}
+            className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
+              selectedMood === m
+                ? isVape
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40'
+                  : 'bg-orange-600 text-white shadow-lg shadow-orange-600/40'
+                : 'bg-white/[0.05] hover:bg-white/[0.1] text-zinc-400 border border-white/[0.05]'
+            }`}
           >
-            {selectedMood ? `Mood: ${selectedMood} (Tap to change)` : '+ Tag Mood / Trigger'}
+            {m}
           </button>
+        ))}
+      </div>
 
-          {showMoodSelector && (
-            <div className="flex flex-wrap gap-1.5 justify-center py-2 px-3 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] w-full transition-all mt-2">
-              {moodList.map((mood) => (
+      {/* Bottom Action Controls matching Screenshot 1 */}
+      <div className="w-full flex items-center gap-4 mt-2">
+        {/* Large Glowing Pill Button */}
+        <button
+          onClick={handlePuffClick}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setShowQuickHitFlyout(true);
+          }}
+          className={`relative flex-1 h-[72px] rounded-[36px] flex items-center justify-center cursor-pointer transition-all duration-200 select-none ${
+            isPressingPlus ? 'scale-95' : 'hover:scale-[1.01]'
+          }`}
+          style={{
+            background: isVape
+              ? 'linear-gradient(180deg, rgba(168, 85, 247, 0.45) 0%, rgba(126, 34, 206, 0.45) 100%)'
+              : 'linear-gradient(180deg, rgba(249, 115, 22, 0.45) 0%, rgba(220, 38, 38, 0.45) 100%)',
+            border: isVape
+              ? '1px solid rgba(216, 180, 254, 0.35)'
+              : '1px solid rgba(253, 186, 116, 0.35)',
+            boxShadow: isVape
+              ? '0 8px 32px 0 rgba(168, 85, 247, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)'
+              : '0 8px 32px 0 rgba(249, 115, 22, 0.35), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          <div className="absolute inset-0 rounded-[36px] bg-gradient-to-t from-transparent via-white/5 to-white/20 pointer-events-none" />
+          <Plus className="w-9 h-9 text-white stroke-[2.5] drop-shadow-md" />
+        </button>
+
+        {/* Circular "-" Button */}
+        <button
+          onClick={handleMinusClick}
+          className={`w-[72px] h-[72px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 select-none ${
+            isPressingMinus ? 'scale-90' : 'hover:scale-105'
+          }`}
+          style={{
+            background: isVape
+              ? 'linear-gradient(180deg, rgba(168, 85, 247, 0.45) 0%, rgba(126, 34, 206, 0.45) 100%)'
+              : 'linear-gradient(180deg, rgba(249, 115, 22, 0.45) 0%, rgba(220, 38, 38, 0.45) 100%)',
+            border: isVape
+              ? '1px solid rgba(216, 180, 254, 0.35)'
+              : '1px solid rgba(253, 186, 116, 0.35)',
+            boxShadow: isVape
+              ? '0 8px 32px 0 rgba(168, 85, 247, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)'
+              : '0 8px 32px 0 rgba(249, 115, 22, 0.25), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
+          <Minus className="w-8 h-8 text-white stroke-[2.5] drop-shadow-md" />
+        </button>
+      </div>
+
+      {/* Quick Hit Options Modal */}
+      {showQuickHitFlyout && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/10 p-5 shadow-2xl flex flex-col gap-4 animate-scale-bounce">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-white">
+                Quick Log {isVape ? 'Puffs' : 'Cigarettes'}
+              </h3>
+              <button
+                onClick={() => setShowQuickHitFlyout(false)}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
+              {[1, 2, 3].map((cnt) => (
                 <button
-                  key={mood}
+                  key={cnt}
                   onClick={() => {
-                    setSelectedMood(selectedMood === mood ? null : mood);
-                    setShowMoodSelector(false);
+                    addMultiplePuffs(cnt);
+                    onTriggerVapor();
+                    setShowQuickHitFlyout(false);
                   }}
-                  className={`px-2.5 py-1 text-xs rounded-xl font-semibold transition-all cursor-pointer ${
-                    selectedMood === mood
-                      ? 'bg-[var(--accent-purple)] text-white shadow-md'
-                      : 'bg-white/5 text-[var(--text-muted)] hover:bg-white/10'
+                  className={`py-3 rounded-2xl border text-sm font-bold transition-all cursor-pointer ${
+                    isVape
+                      ? 'bg-purple-600/20 hover:bg-purple-600/40 border-purple-500/30 text-purple-200'
+                      : 'bg-orange-600/20 hover:bg-orange-600/40 border-orange-500/30 text-orange-200'
                   }`}
                 >
-                  {mood}
+                  +{cnt} {isVape ? 'Hits' : 'Sticks'}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Control Hub (Matching Sketch: Left Quick Hit Flyout, Center '+', Left 'Nic', Right 'Session') */}
-      <div className="flex items-center gap-3 w-full">
-        {/* Nic Button (Left Pill with Custom Molecular Hex Icon) */}
-        <button
-          onClick={() => setShowNicSheet(true)}
-          className="flex-1 flex flex-col items-center justify-center py-3 rounded-2xl glass-panel text-[var(--text-main)] hover:border-[var(--accent-purple)] active:scale-95 transition-all cursor-pointer shadow-md group"
-        >
-          <div className="flex items-center gap-1 text-xs font-extrabold text-[var(--accent-purple)]">
-            <NicotineMoleculeIcon className="h-4 w-4 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" />
-            <span>Nic</span>
-          </div>
-          <span className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">{todayNicotineMg} mg</span>
-        </button>
-
-        {/* Primary '+' Puff Button (Center Round/Pill Button from Sketch) */}
-        <button
-          onClick={handlePuffClick}
-          className={`flex-[1.8] flex items-center justify-center gap-2 py-4 rounded-3xl font-black text-xl shadow-2xl transition-all duration-300 active:scale-90 cursor-pointer ${
-            isPuffing ? 'scale-90 ring-4 ring-cyan-400' : ''
-          }`}
-          style={{
-            background: isOverLimit
-              ? 'linear-gradient(135deg, #ff453a 0%, #ff3b30 100%)'
-              : 'linear-gradient(135deg, #0a84ff 0%, #007aff 100%)',
-            boxShadow: isAuraBlooming
-              ? '0 0 35px rgba(56, 189, 248, 0.7)'
-              : '0 12px 35px -5px rgba(10, 132, 255, 0.5)',
-            color: '#ffffff',
-          }}
-        >
-          <Plus className={`h-7 w-7 stroke-[3.5] transition-transform duration-300 ${isPuffing ? 'rotate-90 scale-125' : ''}`} />
-          <span>PUFF</span>
-        </button>
-
-        {/* Session Button (Right Pill with Custom Chronometer Icon) */}
-        <button
-          onClick={() => setShowSessionModal(true)}
-          className={`flex-1 flex flex-col items-center justify-center py-3 rounded-2xl glass-panel text-[var(--text-main)] hover:border-emerald-500 active:scale-95 transition-all cursor-pointer shadow-md ${
-            isLiveSessionRunning ? 'ring-2 ring-emerald-400 bg-emerald-500/10' : ''
-          }`}
-        >
-          <div className="flex items-center gap-1 text-xs font-extrabold text-emerald-400">
-            <SessionTimerIcon className="h-4 w-4 drop-shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
-            <span>Session</span>
-          </div>
-          <span className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">
-            {isLiveSessionRunning ? `${Math.floor(liveSessionSeconds / 60)}m ${liveSessionSeconds % 60}s` : 'Timed'}
-          </span>
-        </button>
-      </div>
-
-      {/* Undo & Quick Hit Flyout Drawer Toggle (Left Side Quick Hit Menu with Spark Icon) */}
-      <div className="flex items-center justify-between gap-2">
-        <button
-          onClick={() => setShowQuickHitFlyout(!showQuickHitFlyout)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-2xl glass-panel text-xs font-bold text-[var(--text-main)] hover:border-amber-400 transition-all cursor-pointer active:scale-95 shadow-md"
-        >
-          <SparkHitIcon className="h-4 w-4 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
-          <span>Quick Hit Menu</span>
-          <ChevronRight className={`h-3.5 w-3.5 transition-transform duration-200 ${showQuickHitFlyout ? 'rotate-90' : ''}`} />
-        </button>
-
-        <button
-          onClick={undoLastPuff}
-          title="Undo last hit"
-          className="flex items-center gap-1 px-3.5 py-2 rounded-2xl glass-panel text-xs font-semibold text-[var(--text-muted)] hover:text-red-400 transition-all cursor-pointer active:scale-95 shadow-md"
-        >
-          <Minus className="h-3.5 w-3.5" />
-          <span>Undo Hit</span>
-        </button>
-      </div>
-
-      {/* Slide-out Quick Hit Drawer (Matching Sketch Quick Hit: +1, +3, +5, +10) */}
-      {showQuickHitFlyout && (
-        <div className="glass-panel p-4 border border-amber-500/40 bg-[var(--bg-card)] rounded-2xl flex flex-col gap-3 animate-in slide-in-from-left-4 duration-200">
-          <div className="flex items-center justify-between text-xs font-extrabold text-[var(--text-main)]">
-            <span className="flex items-center gap-1.5 text-amber-300">
-              <SparkHitIcon className="h-4 w-4" />
-              Quick Hit Multi-Puff Presets
-            </span>
-            <button
-              onClick={() => setShowQuickHitFlyout(false)}
-              className="text-[var(--text-muted)] hover:text-white cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 3, 5, 10].map((num) => (
-              <button
-                key={num}
-                onClick={() => handleQuickAdd(num)}
-                className="py-3 rounded-xl bg-white/5 hover:bg-amber-500 hover:text-black border border-[var(--border-subtle)] text-xs font-black text-[var(--text-main)] transition-all cursor-pointer active:scale-95 shadow-md flex flex-col items-center justify-center gap-0.5"
-              >
-                <span className="text-base font-black">+{num}</span>
-                <span className="text-[9px] opacity-75 font-normal">hits</span>
-              </button>
-            ))}
           </div>
         </div>
       )}
 
-      {/* Apple Health Widget: Session Pace & Cost Highlights */}
-      <div className="glass-panel p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)]">
-          <span className="flex items-center gap-1.5 text-[var(--accent-purple)]">
-            <Activity className="h-3.5 w-3.5" />
-            Daily Habit Pacing
-          </span>
-          <span className="text-emerald-400 font-bold">
-            {averageBreakMinutes > 0 ? `${averageBreakMinutes}m avg pause` : 'Active'}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
-            <div className="text-[10px] text-[var(--text-muted)] font-medium">Daily Cost Spent</div>
-            <div className="text-lg font-bold text-[var(--text-main)] mt-0.5">₹{todayCost}</div>
-          </div>
-          <div className="rounded-2xl bg-white/5 p-3 border border-[var(--border-subtle)]">
-            <div className="text-[10px] text-[var(--text-muted)] font-medium">Avg Hit Interval</div>
-            <div className="text-lg font-bold text-indigo-400 mt-0.5">
-              {averageBreakMinutes > 0 ? `${averageBreakMinutes} min` : 'Continuous'}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Nic Quick Info Sheet Modal */}
-      {showNicSheet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative">
+      {/* Metric Info Sheet Modal */}
+      {activeInfoModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fadeIn">
+          <div className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/10 p-6 shadow-2xl flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-[var(--text-main)] flex items-center gap-2">
-                <NicotineMoleculeIcon className="h-6 w-6" />
-                <span>Nicotine Intake Rate</span>
+              <h3 className="text-lg font-bold text-white capitalize">
+                {activeInfoModal === 'vapeFree'
+                  ? isVape
+                    ? 'Vape-Free Timer'
+                    : 'Smoke-Free Timer'
+                  : activeInfoModal === 'vapingTime'
+                  ? isVape
+                    ? 'Active Vaping Duration'
+                    : 'Cigarette Spend'
+                  : activeInfoModal === 'nicotine'
+                  ? 'Nicotine Consumption'
+                  : isVape
+                  ? 'Vaping Sessions'
+                  : 'Pack Remaining'}
               </h3>
               <button
-                onClick={() => setShowNicSheet(false)}
-                className="p-1 rounded-full text-[var(--text-muted)] hover:text-white cursor-pointer"
+                onClick={() => setActiveInfoModal(null)}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white cursor-pointer"
               >
-                <X className="h-4 w-4" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex flex-col gap-3 text-xs text-[var(--text-muted)]">
-              <div className="rounded-xl bg-white/5 p-3 border border-[var(--border-subtle)] flex items-center justify-between">
-                <span>Concentration</span>
-                <strong className="text-[var(--text-main)]">{vapeProfile.nicotineMgPerMl} mg/mL ({((vapeProfile.nicotineMgPerMl / 1000) * 100).toFixed(1)}%)</strong>
-              </div>
-
-              <div className="rounded-xl bg-white/5 p-3 border border-[var(--border-subtle)] flex items-center justify-between">
-                <span>Estimated per Puff</span>
-                <strong className="text-[var(--accent-purple)] font-bold">~{nicotinePerPuffMg.toFixed(2)} mg</strong>
-              </div>
-
-              <div className="rounded-xl bg-white/5 p-3 border border-[var(--border-subtle)] flex items-center justify-between">
-                <span>Total Absorbed Today</span>
-                <strong className="text-emerald-400 font-bold">{todayNicotineMg} mg</strong>
-              </div>
-
-              <p className="text-[11px] leading-relaxed pt-1">
-                Based on your {vapeProfile.deviceName} ({vapeProfile.podCapacityMl}mL / {vapeProfile.totalPuffsPerPod} puffs). You can calibrate these specs anytime in the <strong>Models</strong> tab.
-              </p>
-            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              {activeInfoModal === 'vapeFree' &&
+                `Counts the continuous elapsed time since your last ${isVape ? 'vape puff' : 'cigarette'}. Giving your body prolonged breaks accelerates oxygen saturation and vascular repair.`}
+              {activeInfoModal === 'vapingTime' &&
+                (isVape
+                  ? 'Estimated cumulative time spent inhaling vapor today, based on puff frequency.'
+                  : `Estimated cost based on ₹${vapeProfile.cigCostPerPack || 360} per 20-cigarette pack (₹18/stick).`)}
+              {activeInfoModal === 'nicotine' &&
+                (isVape
+                  ? `Calculated based on your ${vapeProfile.deviceName} (${vapeProfile.nicotineMgPerMl}mg/ml over ${vapeProfile.totalPuffsPerPod} puffs). Every pull delivers approximately ${(
+                      ((vapeProfile.nicotineMgPerMl || 50) * (vapeProfile.podCapacityMl || 13)) /
+                      (vapeProfile.totalPuffsPerPod || 5000)
+                    ).toFixed(2)} mg.`
+                  : `Calculated at ~1.2 mg nicotine per cigarette stick. ${todayCount} cigarettes smoked = ${todayNicotineMg} mg absorbed.`)}
+              {activeInfoModal === 'sessions' &&
+                (isVape
+                  ? 'A session is defined by consecutive puffs logged within 5 minutes of each other.'
+                  : `${cigsLeftInPack} sticks remaining in your current 20-pack.`)}
+            </p>
 
             <button
-              onClick={() => setShowNicSheet(false)}
-              className="w-full py-2.5 rounded-xl bg-[var(--accent-purple)] text-white font-bold text-xs shadow-md cursor-pointer"
+              onClick={() => setActiveInfoModal(null)}
+              className={`mt-2 w-full py-2.5 rounded-xl text-xs font-bold text-white transition-all cursor-pointer ${
+                isVape ? 'bg-purple-600 hover:bg-purple-500' : 'bg-orange-600 hover:bg-orange-500'
+              }`}
             >
               Done
             </button>
           </div>
         </div>
       )}
-
-      {/* Session Mode Modal */}
-      {showSessionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-[var(--text-main)] flex items-center gap-2">
-                <SessionTimerIcon className="h-6 w-6" />
-                <span>Timed Vape Session</span>
-              </h3>
-              <button
-                onClick={() => setShowSessionModal(false)}
-                className="p-1 rounded-full text-[var(--text-muted)] hover:text-white cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-[var(--border-subtle)] gap-2">
-              <span className="text-3xl font-mono font-black text-emerald-400">
-                {Math.floor(liveSessionSeconds / 60).toString().padStart(2, '0')}:{(liveSessionSeconds % 60).toString().padStart(2, '0')}
-              </span>
-              <span className="text-xs text-[var(--text-muted)] font-semibold">
-                {liveSessionPuffs} hits taken during this session
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              {isLiveSessionRunning ? (
-                <button
-                  onClick={() => {
-                    stopLiveSession();
-                    setShowSessionModal(false);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs cursor-pointer hover:bg-red-500/30"
-                >
-                  End Session
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    startLiveSession();
-                    setShowSessionModal(false);
-                  }}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md cursor-pointer hover:bg-emerald-500"
-                >
-                  Start New Session
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Scroll Spacer */}
-      <div className="h-16 w-full shrink-0" />
     </div>
   );
 };

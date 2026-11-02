@@ -1,10 +1,13 @@
 export type MoodTag = 'Stress' | 'Boredom' | 'Social' | 'Morning' | 'Post Meal' | 'Habit' | 'Craving';
 
+export type ConsumptionType = 'vape' | 'cigarette';
+
 export interface PuffLog {
   id: string;
   timestamp: number; // unix ms
   mood?: MoodTag;
   note?: string;
+  type?: ConsumptionType;
 }
 
 export interface Session {
@@ -25,6 +28,12 @@ export interface VapeProfile {
   costPerPodOrBottle: number; // In INR (₹), e.g. ₹1800
   dailyLimitGoal: number; // e.g. 60 puffs/day
   currency?: string; // '₹'
+
+  // Cigarette Profile
+  cigCostPerPack?: number; // e.g. ₹360 per pack
+  cigsPerPack?: number; // e.g. 20 sticks
+  cigDailyLimit?: number; // e.g. 10 sticks/day
+  cigNicotinePerStick?: number; // e.g. 1.2 mg/stick
 }
 
 export interface PodRefillRecord {
@@ -62,7 +71,7 @@ export interface UserProfile {
   photoURL: string | null;
 }
 
-export type NavTabType = 'home' | 'models' | 'analytics' | 'history';
+export type NavTabType = 'daily' | 'plan' | 'history' | 'statistics' | 'settings';
 
 export type LungHealthStatus = 'None' | 'Lower' | 'Moderate' | 'High' | 'Very High';
 
@@ -81,3 +90,5 @@ export interface DaySummary {
   nicotineMg: number;
   estimatedCost: number;
 }
+
+export type SyncState = 'syncing' | 'synced' | 'local' | 'error';

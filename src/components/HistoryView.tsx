@@ -1,27 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { usePuff } from '../context/PuffContext';
-import { Clock, Trash2, Plus, Tag, Calendar } from 'lucide-react';
-import type { MoodTag } from '../types';
+import { Clock, Trash2, Plus, X, Zap, Flame } from 'lucide-react';
+import type { MoodTag, ConsumptionType } from '../types';
 
 export const HistoryView: React.FC = () => {
-  const { puffs, deletePuff, addPuff, updatePuffMood, past7Days } = usePuff();
+  const { puffs, deletePuff, addPuff, activeMode } = usePuff();
   const [filterMood, setFilterMood] = useState<MoodTag | 'All'>('All');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
-  const [missedTimeMinutesAgo, setMissedTimeMinutesAgo] = useState<number>(5);
+  const [missedMinutesAgo, setMissedMinutesAgo] = useState<number>(5);
   const [missedMood, setMissedMood] = useState<MoodTag>('Habit');
-  const [editingPuffId, setEditingPuffId] = useState<string | null>(null);
+  const [missedType, setMissedType] = useState<ConsumptionType>(activeMode);
 
   const moodsList: MoodTag[] = ['Morning', 'Stress', 'Habit', 'Social', 'Post Meal', 'Boredom', 'Craving'];
 
-  const filteredPuffs = puffs.filter((p) => {
-    if (filterMood !== 'All' && p.mood !== filterMood) return false;
-    return true;
-  });
+  const filteredPuffs = useMemo(() => {
+    return puffs.filter((p) => {
+      if (filterMood !== 'All' && p.mood !== filterMood) return false;
+      return true;
+    });
+  }, [puffs, filterMood]);
 
   const handleAddMissed = (e: React.FormEvent) => {
     e.preventDefault();
-    const timestamp = Date.now() - missedTimeMinutesAgo * 60 * 1000;
-    addPuff(missedMood, undefined, timestamp);
+    const timestamp = Date.now() - missedMinutesAgo * 60 * 1000;
+    addPuff(missedMood, undefined, timestamp, missedType);
     setShowAddModal(false);
   };
 
@@ -30,7 +32,7 @@ export const HistoryView: React.FC = () => {
     const groups: Record<string, typeof puffs> = {};
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
+
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     const yesterdayStr = yesterday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -52,104 +54,47 @@ export const HistoryView: React.FC = () => {
   }, [filteredPuffs]);
 
   return (
-    <div className="flex flex-col gap-5 px-4 pb-12 pt-1">
-      {/* View Header */}
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col w-full px-5 pb-12 pt-1 text-white">
+      {/* Header */}
+      <div className="w-full flex items-center justify-between pt-1 pb-4">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--text-main)]">
-            History Journal
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Puff History
           </h1>
-          <p className="text-xs text-[var(--text-muted)] font-medium">
+          <p className="text-xs text-zinc-400 font-medium">
             {puffs.length} total puffs logged
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 rounded-full bg-[var(--accent-purple)] px-3.5 py-1.5 text-xs font-bold text-white shadow-lg hover:opacity-95 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-1.5 rounded-full bg-purple-600 hover:bg-purple-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-purple-600/30 transition-all cursor-pointer active:scale-95"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="w-4 h-4" />
           <span>Add Missed</span>
         </button>
       </div>
 
-      {/* Top Date Cards Carousel (Matching Sketch Top: [Date 80/125], [Date 2/100]) */}
-      <div className="flex flex-col gap-2">
-        <div className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-          Daily Log Overview
-        </div>
-
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
-          {past7Days.map((d, index) => {
-            const dateObj = new Date(d.dateStr);
-            const dayName = index === past7Days.length - 1 ? 'Today' : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-            const dayNum = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-            const isOver = d.puffCount > d.limit;
-            const pct = Math.min(100, Math.round((d.puffCount / Math.max(1, d.limit)) * 100));
-
-            return (
-              <div
-                key={d.dateStr}
-                className="glass-panel p-3.5 min-w-[130px] flex flex-col justify-between shrink-0 snap-start relative overflow-hidden transition-all hover:border-[var(--accent-purple)]"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[var(--text-main)]">{dayName}</span>
-                  <span className="text-[9px] text-[var(--text-muted)]">{dayNum}</span>
-                </div>
-
-                {/* Mini SVG Progress Arc */}
-                <div className="my-2 flex items-center justify-center relative h-14 w-14 mx-auto">
-                  <svg className="h-14 w-14 transform -rotate-90">
-                    <circle cx="28" cy="28" r="22" stroke="rgba(255,255,255,0.1)" strokeWidth="4.5" fill="transparent" />
-                    <circle
-                      cx="28"
-                      cy="28"
-                      r="22"
-                      stroke={isOver ? '#ff453a' : 'var(--accent-purple)'}
-                      strokeWidth="4.5"
-                      strokeDasharray={2 * Math.PI * 22}
-                      strokeDashoffset={(2 * Math.PI * 22) * (1 - pct / 100)}
-                      strokeLinecap="round"
-                      fill="transparent"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-xs font-black text-[var(--text-main)]">{d.puffCount}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-[var(--text-muted)]">Goal: {d.limit}</span>
-                  <span className={isOver ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
-                    {isOver ? 'Over' : 'Pass'}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Mood Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Mood Filters Carousel */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-2 scrollbar-none">
         <button
           onClick={() => setFilterMood('All')}
-          className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+          className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
             filterMood === 'All'
-              ? 'bg-[var(--text-main)] text-[var(--bg-primary)]'
-              : 'glass-panel text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40'
+              : 'bg-white/[0.05] text-zinc-400 hover:bg-white/10'
           }`}
         >
-          All
+          All Puffs
         </button>
         {moodsList.map((m) => (
           <button
             key={m}
             onClick={() => setFilterMood(m)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
               filterMood === m
-                ? 'bg-[var(--accent-purple)] text-white'
-                : 'glass-panel text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40'
+                : 'bg-white/[0.05] text-zinc-400 hover:bg-white/10'
             }`}
           >
             {m}
@@ -157,85 +102,78 @@ export const HistoryView: React.FC = () => {
         ))}
       </div>
 
-      {/* Grouped Weekly Timeline (Matching Sketch "Week" Timeline) */}
-      <div className="flex flex-col gap-4">
+      {/* Grouped Logs List */}
+      <div className="flex flex-col gap-5">
         {Object.keys(groupedPuffs).length === 0 ? (
-          <div className="glass-panel p-8 text-center text-xs text-[var(--text-muted)]">
-            No puff logs found for this filter.
+          <div className="p-8 text-center rounded-2xl bg-[#1c1c1e]/60 border border-white/5 backdrop-blur-xl">
+            <Clock className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-zinc-400">No puffs logged yet</p>
+            <p className="text-xs text-zinc-600 mt-1">Tap the large + button on the home screen to log a puff.</p>
           </div>
         ) : (
-          Object.entries(groupedPuffs).map(([groupTitle, groupItems]) => (
+          Object.entries(groupedPuffs).map(([groupTitle, list]) => (
             <div key={groupTitle} className="flex flex-col gap-2">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-[var(--accent-purple)]" />
+                <span className="text-xs font-bold text-zinc-400 tracking-wider uppercase">
                   {groupTitle}
                 </span>
-                <span className="text-[10px] font-bold text-[var(--text-main)] px-2 py-0.5 rounded-full bg-white/5">
-                  {groupItems.length} hits
+                <span className="text-xs text-purple-400 font-semibold">
+                  {list.length} hits
                 </span>
               </div>
 
-              <div className="flex flex-col gap-2">
-                {groupItems.map((p) => {
-                  const dateObj = new Date(p.timestamp);
-                  const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              <div className="rounded-2xl bg-[#1c1c1e]/80 border border-white/[0.08] backdrop-blur-xl overflow-hidden divide-y divide-white/[0.05]">
+                {list.slice(0, 50).map((puff) => {
+                  const time = new Date(puff.timestamp).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                  });
 
+                  const isCig = puff.type === 'cigarette';
                   return (
                     <div
-                      key={p.id}
-                      className="glass-panel p-3 flex items-center justify-between transition-all hover:border-[var(--accent-purple-glow)]"
+                      key={puff.id}
+                      className="flex items-center justify-between p-3.5 hover:bg-white/[0.03] transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-bold text-xs">
-                          <Clock className="h-4 w-4" />
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            isCig
+                              ? 'bg-orange-600/20 text-orange-400'
+                              : 'bg-purple-600/20 text-purple-400'
+                          }`}
+                        >
+                          {isCig ? <Flame className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-[var(--text-main)]">
-                            {timeStr}
+                          <div className="text-sm font-bold text-white flex items-center gap-2">
+                            <span>{time}</span>
+                            <span
+                              className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                                isCig
+                                  ? 'bg-orange-500/20 text-orange-300'
+                                  : 'bg-purple-500/20 text-purple-300'
+                              }`}
+                            >
+                              {isCig ? 'Cigarette' : 'Vape'}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {p.mood ? (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-accent-pill)] text-[var(--accent-purple)] border border-[var(--border-subtle)]">
-                                {p.mood}
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => setEditingPuffId(editingPuffId === p.id ? null : p.id)}
-                                className="text-[10px] text-[var(--text-muted)] hover:underline flex items-center gap-1 cursor-pointer"
-                              >
-                                <Tag className="h-3 w-3" />
-                                Tag trigger
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Mood inline picker if editing */}
-                          {editingPuffId === p.id && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {moodsList.map((m) => (
-                                <button
-                                  key={m}
-                                  onClick={() => {
-                                    updatePuffMood(p.id, m);
-                                    setEditingPuffId(null);
-                                  }}
-                                  className="text-[10px] px-2 py-0.5 rounded-md bg-white/10 text-[var(--text-main)] hover:bg-[var(--accent-purple)] cursor-pointer"
-                                >
-                                  {m}
-                                </button>
-                              ))}
-                            </div>
+                          {puff.mood && (
+                            <span className="inline-block px-2 py-0.5 mt-0.5 rounded-md bg-white/5 text-[10px] font-medium text-zinc-400">
+                              {puff.mood}
+                            </span>
                           )}
                         </div>
                       </div>
 
                       <button
-                        onClick={() => deletePuff(p.id)}
-                        className="p-2 text-[var(--text-muted)] hover:text-red-400 transition-colors cursor-pointer"
-                        title="Delete log"
+                        onClick={() => deletePuff(puff.id)}
+                        className="w-8 h-8 rounded-full hover:bg-rose-500/20 flex items-center justify-center text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
+                        title="Delete puff"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   );
@@ -248,64 +186,83 @@ export const HistoryView: React.FC = () => {
 
       {/* Add Missed Puff Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="glass-panel p-6 w-full max-w-sm flex flex-col gap-4 relative">
-            <h3 className="text-base font-bold text-[var(--text-main)]">Add Missed Puff Hit</h3>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-4">
+          <form
+            onSubmit={handleAddMissed}
+            className="w-full max-w-sm rounded-3xl bg-zinc-900 border border-white/10 p-5 shadow-2xl flex flex-col gap-4 animate-scale-bounce"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-white">Log Missed Hit</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleAddMissed} className="flex flex-col gap-4">
-              <div>
-                <label className="text-xs text-[var(--text-muted)] font-medium mb-1 block">
-                  How many minutes ago?
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="1440"
-                  value={missedTimeMinutesAgo}
-                  onChange={(e) => setMissedTimeMinutesAgo(Number(e.target.value))}
-                  className="w-full rounded-2xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)]"
-                />
-              </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMissedType('vape')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  missedType === 'vape'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-black/60 text-zinc-400 border border-white/5'
+                }`}
+              >
+                ⚡ Vape
+              </button>
+              <button
+                type="button"
+                onClick={() => setMissedType('cigarette')}
+                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                  missedType === 'cigarette'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-black/60 text-zinc-400 border border-white/5'
+                }`}
+              >
+                🚬 Cigarette
+              </button>
+            </div>
 
-              <div>
-                <label className="text-xs text-[var(--text-muted)] font-medium mb-1 block">
-                  Mood / Trigger:
-                </label>
-                <select
-                  value={missedMood}
-                  onChange={(e) => setMissedMood(e.target.value as MoodTag)}
-                  className="w-full rounded-2xl bg-white/5 border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-main)] outline-none focus:border-[var(--accent-purple)]"
-                >
-                  {moodsList.map((m) => (
-                    <option key={m} value={m} className="bg-[#12121c] text-white">
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-zinc-400 block mb-1">How many minutes ago?</label>
+              <input
+                type="number"
+                min="1"
+                max="720"
+                value={missedMinutesAgo}
+                onChange={(e) => setMissedMinutesAgo(Math.max(1, Number(e.target.value)))}
+                className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-sm"
+              />
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-2xl text-xs font-semibold text-[var(--text-muted)] hover:text-white cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-2xl text-xs font-bold bg-[var(--accent-purple)] text-white shadow-lg cursor-pointer"
-                >
-                  Save Puff
-                </button>
-              </div>
-            </form>
-          </div>
+            <div>
+              <label className="text-xs text-zinc-400 block mb-1">Mood / Context</label>
+              <select
+                value={missedMood}
+                onChange={(e) => setMissedMood(e.target.value as MoodTag)}
+                className="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-white text-sm"
+              >
+                {moodsList.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition-all cursor-pointer shadow-lg shadow-purple-600/30"
+            >
+              Add To History
+            </button>
+          </form>
         </div>
       )}
-
-      {/* Bottom Scroll Clearance Spacer */}
-      <div className="h-16 w-full shrink-0" />
     </div>
   );
 };
