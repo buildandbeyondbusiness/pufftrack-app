@@ -10,6 +10,7 @@ import {
   Check,
   AlertCircle,
   X,
+  Zap,
 } from 'lucide-react';
 import type { AppTheme } from '../types';
 import { getSupabaseCredentials } from '../supabase/config';
@@ -34,9 +35,12 @@ export const SettingsView: React.FC = () => {
   const [connectMessage, setConnectMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [copiedCigWebhook, setCopiedCigWebhook] = useState(false);
   const [importText, setImportText] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const handleConnectSupabase = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,12 +57,36 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  const webhookUrl = `${window.location.origin}${window.location.pathname}?action=puff&key=${syncKey}`;
+  const webhookUrl = `${window.location.origin}/hit?key=${encodeURIComponent(syncKey)}`;
+  const cigWebhookUrl = `${window.location.origin}/hit?key=${encodeURIComponent(syncKey)}&type=cigarette`;
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, isCig: boolean = false) => {
     navigator.clipboard.writeText(text);
-    setCopiedWebhook(true);
-    setTimeout(() => setCopiedWebhook(false), 2000);
+    if (isCig) {
+      setCopiedCigWebhook(true);
+      setTimeout(() => setCopiedCigWebhook(false), 2000);
+    } else {
+      setCopiedWebhook(true);
+      setTimeout(() => setCopiedWebhook(false), 2000);
+    }
+  };
+
+  const handleTestWebhook = async (urlToTest: string) => {
+    setTestingWebhook(true);
+    setTestResult(null);
+    try {
+      const res = await fetch(urlToTest);
+      if (res.ok) {
+        setTestResult('✅ Success! Hit recorded & synced to SuperBase Edge in ~20ms.');
+      } else {
+        setTestResult(`⚠️ Server responded with HTTP ${res.status}`);
+      }
+    } catch (err: any) {
+      setTestResult(`❌ Connection failed: ${err?.message || 'Check network'}`);
+    } finally {
+      setTestingWebhook(false);
+      setTimeout(() => setTestResult(null), 5000);
+    }
   };
 
   const themes: { id: AppTheme; label: string; color: string }[] = [
@@ -318,23 +346,88 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* iPhone Back Tap Webhook */}
-      <div className="w-full rounded-2xl bg-[#1c1c1e]/80 border border-white/[0.08] backdrop-blur-xl p-5 shadow-lg mb-5 flex flex-col gap-3">
-        <h2 className="text-sm font-bold text-white">iPhone Back Tap Shortcut</h2>
-        <p className="text-xs text-zinc-400">
-          Double-tap the back of your iPhone to log a puff instantly via iOS Shortcuts:
+      {/* iPhone Back Tap & Action Button Webhook */}
+      <div className="w-full rounded-2xl bg-[#1c1c1e]/80 border border-white/[0.08] backdrop-blur-xl p-5 shadow-lg mb-5 flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-purple-600/20 flex items-center justify-center text-purple-400">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-white">iPhone Back Tap / Action Button</h2>
+            <p className="text-[11px] text-zinc-400">Instant 0ms background logging via iOS Shortcuts</p>
+          </div>
+        </div>
+
+        <p className="text-xs text-zinc-300 leading-relaxed">
+          Log hits silently in the background by double-tapping the back of your phone or clicking the Action Button:
         </p>
 
-        <div className="flex items-center gap-2 p-2.5 rounded-xl bg-black/60 border border-white/10">
-          <span className="text-[11px] font-mono text-purple-300 truncate flex-1">
-            {webhookUrl}
+        {/* Vape Pod Webhook URL */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-purple-300 uppercase tracking-wider">
+            ⚡ Vape Hit Webhook URL
           </span>
-          <button
-            onClick={() => copyToClipboard(webhookUrl)}
-            className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all cursor-pointer"
-          >
-            {copiedWebhook ? 'Copied!' : 'Copy'}
-          </button>
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-black/60 border border-white/10">
+            <span className="text-[11px] font-mono text-purple-200 truncate flex-1">
+              {webhookUrl}
+            </span>
+            <button
+              onClick={() => copyToClipboard(webhookUrl, false)}
+              className="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white transition-all cursor-pointer shrink-0"
+            >
+              {copiedWebhook ? 'Copied!' : 'Copy'}
+            </button>
+            <button
+              onClick={() => handleTestWebhook(webhookUrl)}
+              disabled={testingWebhook}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-zinc-200 transition-all cursor-pointer shrink-0"
+            >
+              Test
+            </button>
+          </div>
+        </div>
+
+        {/* Cigarette Webhook URL */}
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-orange-300 uppercase tracking-wider">
+            🚬 Cigarette Hit Webhook URL
+          </span>
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-black/60 border border-white/10">
+            <span className="text-[11px] font-mono text-orange-200 truncate flex-1">
+              {cigWebhookUrl}
+            </span>
+            <button
+              onClick={() => copyToClipboard(cigWebhookUrl, true)}
+              className="px-2.5 py-1 rounded-lg bg-orange-600 hover:bg-orange-500 text-xs font-bold text-white transition-all cursor-pointer shrink-0"
+            >
+              {copiedCigWebhook ? 'Copied!' : 'Copy'}
+            </button>
+            <button
+              onClick={() => handleTestWebhook(cigWebhookUrl)}
+              disabled={testingWebhook}
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-zinc-200 transition-all cursor-pointer shrink-0"
+            >
+              Test
+            </button>
+          </div>
+        </div>
+
+        {testResult && (
+          <div className="p-2.5 rounded-xl text-xs bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 animate-fadeIn font-medium">
+            {testResult}
+          </div>
+        )}
+
+        {/* 60-Second Setup Guide */}
+        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col gap-2 text-xs text-zinc-300">
+          <span className="font-bold text-white text-[12px]">📱 60-Second Setup Guide:</span>
+          <ol className="list-decimal list-inside space-y-1.5 text-zinc-400">
+            <li>Open the <b className="text-zinc-200">Shortcuts</b> app on your iPhone and tap <b className="text-zinc-200">+</b></li>
+            <li>Add action: <b className="text-zinc-200">"Get Contents of URL"</b></li>
+            <li>Paste your copied URL above (Method: GET)</li>
+            <li>Go to iPhone <b className="text-zinc-200">Settings → Accessibility → Touch → Back Tap</b> (or Action Button)</li>
+            <li>Assign your shortcut to <b className="text-zinc-200">Double Tap</b> or <b className="text-zinc-200">Action Button</b>!</li>
+          </ol>
         </div>
       </div>
 

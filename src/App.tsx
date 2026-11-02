@@ -28,15 +28,32 @@ const MainAppContent: React.FC = () => {
     document.body.className = `theme-${settings.theme}`;
   }, [settings.theme]);
 
-  // Handle URL Query Action Trigger (e.g. ?key=...&action=puff for iOS Back Tap)
+  // Handle URL Query Action Trigger (e.g. ?action=puff or ?action=puff_success from /hit)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('action') === 'puff' || params.get('hit') === '1') {
+    const action = params.get('action');
+    const isHit = params.get('hit') === '1';
+
+    if (action === 'puff_success') {
+      // Hit was already recorded on the edge by /hit, just trigger celebratory UI feedback
+      const now = Date.now();
+      if (vaporRef.current && settings.vaporEffectsEnabled) {
+        vaporRef.current.emitPuff(undefined, undefined, 40);
+      }
+      setMacNotification({
+        id: `backtap-${now}`,
+        title: 'iPhone Back Tap Registered',
+        subtitle: 'Hit saved to SuperBase & synced live.',
+        type: 'success',
+      });
+      const newUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    } else if (action === 'puff' || isHit) {
+      // Direct browser hit: log puff locally and sync
       const now = Date.now();
       addPuff();
-
       if (vaporRef.current && settings.vaporEffectsEnabled) {
-        vaporRef.current.emitPuff(undefined, undefined, 35);
+        vaporRef.current.emitPuff(undefined, undefined, 40);
       }
       setMacNotification({
         id: `backtap-${now}`,
@@ -44,7 +61,6 @@ const MainAppContent: React.FC = () => {
         subtitle: 'Puff logged & synced to SuperBase Cloud.',
         type: 'success',
       });
-
       const newUrl = window.location.origin + window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }

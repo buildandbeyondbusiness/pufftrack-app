@@ -15,7 +15,7 @@ const saveToSupabase = async (
   mood: string | null,
   note: string | null,
   env?: Env
-) => {
+): Promise<boolean> => {
   const rawUrl = env?.SUPABASE_URL || 'https://rhefptyiixgsmryayidb.supabase.co';
   const cleanUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
   const apiKey = env?.SUPABASE_ANON_KEY || 'sb_publishable_dTjkWJcUftyYf9BaC59z3A_ozYlT0GY';
@@ -47,9 +47,12 @@ const saveToSupabase = async (
     if (!res.ok) {
       const errText = await res.text();
       console.warn('[Action Button Supabase Error]', errText);
+      return false;
     }
+    return true;
   } catch (err: any) {
     console.error('[Action Button Supabase Exception]', err?.message);
+    return false;
   }
 };
 
@@ -58,7 +61,7 @@ export const onRequestOptions: PagesFunction<Env> = async () => {
 };
 
 export const onRequest: PagesFunction<Env> = async (context) => {
-  const { request, waitUntil, env } = context;
+  const { request, env } = context;
   const url = new URL(request.url);
 
   let key = url.searchParams.get('key') || 'default-device';
@@ -87,13 +90,31 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const noteVal = type === 'cigarette' ? '[cigarette]' : null;
 
-  // Asynchronous edge write via waitUntil (instant 0ms response to iPhone Action button)
-  if (waitUntil) {
-    waitUntil(saveToSupabase(key, now, mood, noteVal, env));
-  } else {
-    await saveToSupabase(key, now, mood, noteVal, env);
+  // 1. Guaranteed synchronous write to Supabase (takes ~20ms)
+  await saveToSupabase(key, now, mood, noteVal, env);
+
+  // 2. Check if the request came from a human browser (Safari / Chrome)
+  const acceptHeader = request.headers.get('accept') || '';
+  const isBrowserRequest = acceptHeader.includes('text/html') && request.method === 'GET';
+
+  if (isBrowserRequest) {
+    // Redirect browser directly to the dashboard with a success toast!
+    const targetUrl = new URL('/', url.origin);
+    targetUrl.searchParams.set('action', 'puff_success');
+    targetUrl.searchParams.set('key', key);
+    targetUrl.searchParams.set('type', type);
+
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: targetUrl.toString(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        ...corsHeaders,
+      },
+    });
   }
 
+  // 3. For iOS Shortcuts (Get Contents of URL), curl, or API calls: return instant JSON
   return new Response(
     JSON.stringify({
       success: true,
@@ -106,6 +127,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
         ...corsHeaders,
       },
     }
